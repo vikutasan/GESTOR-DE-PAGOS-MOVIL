@@ -61,10 +61,12 @@ export const getDashboard = async () => {
   let victorBalance = 0;
 
   transactions.forEach(t => {
-    if (t.sender_id === '1') alfonsoBalance -= t.amount;
-    if (t.receiver_id === '1') alfonsoBalance += t.amount;
-    if (t.sender_id === '2') victorBalance -= t.amount;
-    if (t.receiver_id === '2') victorBalance += t.amount;
+    const sId = Number(t.sender_id);
+    const rId = Number(t.receiver_id);
+    if (sId === 1) alfonsoBalance -= t.amount;
+    if (rId === 1) alfonsoBalance += t.amount;
+    if (sId === 2) victorBalance -= t.amount;
+    if (rId === 2) victorBalance += t.amount;
   });
 
   let totalDebt = 0;
@@ -119,6 +121,8 @@ export const saveTransaction = async (data) => {
     ...data,
     id,
     date,
+    sender_id: Number(data.sender_id),
+    receiver_id: Number(data.receiver_id),
     amount: Number(data.amount),
     interest_amount: Number(data.interest_amount || 0)
   };
