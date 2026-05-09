@@ -9,34 +9,37 @@ const dbTransactions = localforage.createInstance({ name: 'pagos', storeName: 't
 const dbSalaries = localforage.createInstance({ name: 'pagos', storeName: 'salaries' });
 
 export const initDB = async () => {
-  const transCount = await dbTransactions.length();
+  const isSeeded = localStorage.getItem('db_seeded_v3');
   
-  // Si no hay transacciones pero tenemos initialData, forzamos la carga
-  if (transCount === 0 && initialData && initialData.transactions) {
+  if (!isSeeded) {
     await dbAccounts.clear();
     await dbCreditLines.clear();
     await dbTransactions.clear();
     await dbSalaries.clear();
     
-    if (initialData.accounts) {
+    if (initialData && initialData.accounts) {
       for (let acc of initialData.accounts) {
         await dbAccounts.setItem(acc.id.toString(), acc);
       }
     }
-    if (initialData.creditLines) {
+    if (initialData && initialData.creditLines) {
       for (let c of initialData.creditLines) {
         await dbCreditLines.setItem(c.id.toString(), c);
       }
     }
-    for (let t of initialData.transactions) {
-      await dbTransactions.setItem(t.id.toString(), t);
+    if (initialData && initialData.transactions) {
+      for (let t of initialData.transactions) {
+        await dbTransactions.setItem(t.id.toString(), t);
+      }
     }
-    if (initialData.salaries) {
+    if (initialData && initialData.salaries) {
       for (let s of initialData.salaries) {
         await dbSalaries.setItem(s.id.toString(), s);
       }
     }
-    return; // Terminamos la inicialización
+    
+    localStorage.setItem('db_seeded_v3', 'true');
+    return;
   }
 
   // Comportamiento normal si no hay accounts
