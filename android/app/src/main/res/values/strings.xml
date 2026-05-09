@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Gestor Pagos AV</string>
+    <string name="title_activity_main">Gestor Pagos AV</string>
+    <string name="package_name">com.vikutasan.pagos</string>
+    <string name="custom_url_scheme">com.vikutasan.pagos</string>
+</resources>

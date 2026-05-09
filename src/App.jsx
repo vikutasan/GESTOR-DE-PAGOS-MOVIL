@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { parseBankStatement } from './utils/BankParser';
 import './App.css';
+import { initDB, getDashboard, getCards, saveCard, getTransactions, saveTransaction, getSalaries, updateSalaryStatus, getSuggestions, syncCard } from './services/db';
 
 function App() {
   const [activeModule, setActiveModule] = useState('payments'); // 'payments' or 'salaries'
@@ -49,24 +50,20 @@ function App() {
 
   const fetchData = async () => {
     try {
-      const dbRes = await fetch(`http://${window.location.hostname}:3001/api/dashboard`);
-      const dbData = await dbRes.json();
+      await initDB();
+      const dbData = await getDashboard();
       setDashboard(dbData);
 
-      const cardsRes = await fetch(`http://${window.location.hostname}:3001/api/cards`);
-      const cardsData = await cardsRes.json();
+      const cardsData = await getCards();
       setCards(cardsData);
 
-      const sugRes = await fetch(`http://${window.location.hostname}:3001/api/suggestions`);
-      const sugData = await sugRes.json();
+      const sugData = await getSuggestions();
       setSuggestion(sugData);
 
-      const salRes = await fetch(`http://${window.location.hostname}:3001/api/salaries`);
-      const salData = await salRes.json();
+      const salData = await getSalaries();
       setSalaries(salData);
 
-      const transRes = await fetch(`http://${window.location.hostname}:3001/api/transactions`);
-      const transData = await transRes.json();
+      const transData = await getTransactions();
       setTransactions(transData);
 
       // Combinar para el historial
@@ -87,11 +84,7 @@ function App() {
   const handleTransactionSubmit = async (e) => {
     e.preventDefault();
     try {
-      await fetch(`http://${window.location.hostname}:3001/api/transactions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
+      await saveTransaction(formData);
       setIsModalOpen(false);
       setFormData({ amount: '', sender_id: '1', receiver_id: '2', concept: '', is_salary: false, interest_amount: '', credit_line_id: '', date: '' });
       fetchData();
@@ -103,16 +96,7 @@ function App() {
   const handleCardSubmit = async (e) => {
     e.preventDefault();
     try {
-      const url = editingCardId 
-        ? `http://localhost:3001/api/cards/${editingCardId}`
-        : `http://${window.location.hostname}:3001/api/cards`;
-      const method = editingCardId ? 'PUT' : 'POST';
-
-      await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cardData)
-      });
+      await saveCard(cardData, editingCardId);
       setIsCardModalOpen(false);
       fetchData();
     } catch (e) {
@@ -122,11 +106,7 @@ function App() {
 
   const handleSalaryStatusChange = async (id, newStatus) => {
     try {
-      await fetch(`http://localhost:3001/api/salaries/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
-      });
+      await updateSalaryStatus(id, newStatus);
       fetchData();
     } catch (e) {
       console.error("Error updating salary status", e);
@@ -707,23 +687,17 @@ function App() {
                     disabled={!syncSelectedCardId}
                     onClick={async () => {
                       try {
-                        const res = await fetch(`http://localhost:3001/api/cards/${syncSelectedCardId}/sync`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ metadata: syncData.metadata })
-                        });
-                        if(res.ok) {
+                        const res = await syncCard(syncSelectedCardId, syncData.metadata);
+                        if(res.updated) {
                           alert('Tarjeta sincronizada exitosamente.');
                           setSyncData(null);
                           setSyncFile(null);
                           // Recargar dashboard
-                          const cardsRes = await fetch(`http://${window.location.hostname}:3001/api/cards`);
-                          setCards(await cardsRes.json());
-                          const dashRes = await fetch(`http://${window.location.hostname}:3001/api/dashboard`);
-                          setDashboard(await dashRes.json());
+                          setCards(await getCards());
+                          setDashboard(await getDashboard());
                           setActiveModule('payments'); // Regresar al dashboard principal
                         } else {
-                          const error = await res.json();
+                          const error = { error: e.message };
                           alert('Error: ' + error.error);
                         }
                       } catch(e) {
