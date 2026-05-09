@@ -9,39 +9,45 @@ const dbTransactions = localforage.createInstance({ name: 'pagos', storeName: 't
 const dbSalaries = localforage.createInstance({ name: 'pagos', storeName: 'salaries' });
 
 export const initDB = async () => {
-  const accountsCount = await dbAccounts.length();
-  if (accountsCount === 0) {
-    // Cargar datos iniciales desde el volcado de la PC
-    if (initialData && initialData.accounts) {
+  const transCount = await dbTransactions.length();
+  
+  // Si no hay transacciones pero tenemos initialData, forzamos la carga
+  if (transCount === 0 && initialData && initialData.transactions) {
+    await dbAccounts.clear();
+    await dbCreditLines.clear();
+    await dbTransactions.clear();
+    await dbSalaries.clear();
+    
+    if (initialData.accounts) {
       for (let acc of initialData.accounts) {
         await dbAccounts.setItem(acc.id.toString(), acc);
       }
-    } else {
-      await dbAccounts.setItem('1', { id: '1', name: 'Alfonso', balance: 0 });
-      await dbAccounts.setItem('2', { id: '2', name: 'Víctor', balance: 0 });
     }
-  }
-
-  const cardsCount = await dbCreditLines.length();
-  if (cardsCount === 0 && initialData && initialData.creditLines) {
-    for (let c of initialData.creditLines) {
-      await dbCreditLines.setItem(c.id.toString(), c);
+    if (initialData.creditLines) {
+      for (let c of initialData.creditLines) {
+        await dbCreditLines.setItem(c.id.toString(), c);
+      }
     }
-  }
-
-  const transCount = await dbTransactions.length();
-  if (transCount === 0 && initialData && initialData.transactions) {
     for (let t of initialData.transactions) {
       await dbTransactions.setItem(t.id.toString(), t);
     }
+    if (initialData.salaries) {
+      for (let s of initialData.salaries) {
+        await dbSalaries.setItem(s.id.toString(), s);
+      }
+    }
+    return; // Terminamos la inicialización
   }
 
-  const salCount = await dbSalaries.length();
-  if (salCount === 0 && initialData && initialData.salaries) {
-    for (let s of initialData.salaries) {
-      await dbSalaries.setItem(s.id.toString(), s);
-    }
+  // Comportamiento normal si no hay accounts
+  const accountsCount = await dbAccounts.length();
+  if (accountsCount === 0) {
+    await dbAccounts.setItem('1', { id: '1', name: 'Alfonso', balance: 0 });
+    await dbAccounts.setItem('2', { id: '2', name: 'Víctor', balance: 0 });
   }
+
+  const cardsCount = await dbCreditLines.length();
+  const salCount = await dbSalaries.length();
 };
 
 export const getDashboard = async () => {
