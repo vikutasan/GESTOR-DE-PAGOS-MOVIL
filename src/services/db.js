@@ -1,5 +1,6 @@
 import localforage from 'localforage';
 import { format } from 'date-fns';
+import initialData from './initial_data.json';
 
 // Configurar instancias de bases de datos (tablas)
 const dbAccounts = localforage.createInstance({ name: 'pagos', storeName: 'accounts' });
@@ -10,18 +11,35 @@ const dbSalaries = localforage.createInstance({ name: 'pagos', storeName: 'salar
 export const initDB = async () => {
   const accountsCount = await dbAccounts.length();
   if (accountsCount === 0) {
-    await dbAccounts.setItem('1', { id: '1', name: 'Alfonso', balance: 0 });
-    await dbAccounts.setItem('2', { id: '2', name: 'Víctor', balance: 0 });
+    // Cargar datos iniciales desde el volcado de la PC
+    if (initialData && initialData.accounts) {
+      for (let acc of initialData.accounts) {
+        await dbAccounts.setItem(acc.id.toString(), acc);
+      }
+    } else {
+      await dbAccounts.setItem('1', { id: '1', name: 'Alfonso', balance: 0 });
+      await dbAccounts.setItem('2', { id: '2', name: 'Víctor', balance: 0 });
+    }
   }
 
-  // Si no hay tarjetas, cargar unas por defecto o dejar vacío
   const cardsCount = await dbCreditLines.length();
-  if (cardsCount === 0) {
-    const defaultCards = [
-      { id: '1', name: 'NU', type: 'TDC', credit_limit: 12000, cut_day: 22, payment_day: 4, current_debt: 0, payment_no_interest: 0, available_credit: 0, liquidation_amount: 0, periodicity: 'MENSUAL' }
-    ];
-    for (let c of defaultCards) {
-      await dbCreditLines.setItem(c.id, c);
+  if (cardsCount === 0 && initialData && initialData.creditLines) {
+    for (let c of initialData.creditLines) {
+      await dbCreditLines.setItem(c.id.toString(), c);
+    }
+  }
+
+  const transCount = await dbTransactions.length();
+  if (transCount === 0 && initialData && initialData.transactions) {
+    for (let t of initialData.transactions) {
+      await dbTransactions.setItem(t.id.toString(), t);
+    }
+  }
+
+  const salCount = await dbSalaries.length();
+  if (salCount === 0 && initialData && initialData.salaries) {
+    for (let s of initialData.salaries) {
+      await dbSalaries.setItem(s.id.toString(), s);
     }
   }
 };

@@ -1,0 +1,439 @@
+{
+  "accounts": [
+    {
+      "id": 1,
+      "name": "Alfonso",
+      "balance": -4226
+    },
+    {
+      "id": 2,
+      "name": "Víctor",
+      "balance": 6388
+    }
+  ],
+  "creditLines": [
+    {
+      "id": 66,
+      "name": "NU",
+      "type": "TDC",
+      "credit_limit": 12000,
+      "cut_day": 22,
+      "payment_day": 4,
+      "current_debt": 1961,
+      "periodicity": "MENSUAL",
+      "payment_no_interest": 0,
+      "available_credit": 0,
+      "liquidation_amount": 0
+    },
+    {
+      "id": 67,
+      "name": "P P COPPEL",
+      "type": "PRESTAMO",
+      "credit_limit": 56591,
+      "cut_day": null,
+      "payment_day": 8,
+      "current_debt": 6591,
+      "periodicity": "MENSUAL",
+      "payment_no_interest": 0,
+      "available_credit": 0,
+      "liquidation_amount": 0
+    },
+    {
+      "id": 68,
+      "name": "INFONAVIT",
+      "type": "SERVICIO",
+      "credit_limit": 150231.79,
+      "cut_day": null,
+      "payment_day": 10,
+      "current_debt": 150231.79,
+      "periodicity": "MENSUAL",
+      "payment_no_interest": 0,
+      "available_credit": 0,
+      "liquidation_amount": 0
+    },
+    {
+      "id": 69,
+      "name": "KLAR",
+      "type": "TDC",
+      "credit_limit": 6000,
+      "cut_day": 1,
+      "payment_day": 11,
+      "current_debt": 3999.78,
+      "periodicity": "MENSUAL",
+      "payment_no_interest": 0,
+      "available_credit": 0,
+      "liquidation_amount": 0
+    },
+    {
+      "id": 70,
+      "name": "NETFLIX",
+      "type": "SERVICIO",
+      "credit_limit": 0,
+      "cut_day": null,
+      "payment_day": null,
+      "current_debt": 0,
+      "periodicity": "MENSUAL",
+      "payment_no_interest": 0,
+      "available_credit": 0,
+      "liquidation_amount": 0
+    },
+    {
+      "id": 71,
+      "name": "BBVA",
+      "type": "TDC",
+      "credit_limit": 19400,
+      "cut_day": 23,
+      "payment_day": 13,
+      "current_debt": 19399.14,
+      "periodicity": "MENSUAL",
+      "payment_no_interest": 0,
+      "available_credit": 0,
+      "liquidation_amount": 0
+    },
+    {
+      "id": 72,
+      "name": "BANCOPPEL",
+      "type": "TDC",
+      "credit_limit": 9350.37,
+      "cut_day": 20,
+      "payment_day": 16,
+      "current_debt": 9350.37,
+      "periodicity": "MENSUAL",
+      "payment_no_interest": 0,
+      "available_credit": 0,
+      "liquidation_amount": 0
+    },
+    {
+      "id": 73,
+      "name": "STORY",
+      "type": "TDC",
+      "credit_limit": 1000,
+      "cut_day": 27,
+      "payment_day": 18,
+      "current_debt": 1000,
+      "periodicity": "MENSUAL",
+      "payment_no_interest": 0,
+      "available_credit": 0,
+      "liquidation_amount": 0
+    },
+    {
+      "id": 74,
+      "name": "ROPA COPPEL",
+      "type": "TDC",
+      "credit_limit": 8412,
+      "cut_day": null,
+      "payment_day": 20,
+      "current_debt": 0,
+      "periodicity": "MENSUAL",
+      "payment_no_interest": 0,
+      "available_credit": 0,
+      "liquidation_amount": 0
+    },
+    {
+      "id": 75,
+      "name": "PLATA",
+      "type": "TDC",
+      "credit_limit": 11500,
+      "cut_day": null,
+      "payment_day": 22,
+      "current_debt": 11457.81,
+      "periodicity": "MENSUAL",
+      "payment_no_interest": 0,
+      "available_credit": 0,
+      "liquidation_amount": 0
+    },
+    {
+      "id": 76,
+      "name": "INVEX",
+      "type": "TDC",
+      "credit_limit": 5500,
+      "cut_day": 5,
+      "payment_day": 27,
+      "current_debt": 0,
+      "periodicity": "MENSUAL",
+      "payment_no_interest": 0,
+      "available_credit": 0,
+      "liquidation_amount": 0
+    },
+    {
+      "id": 77,
+      "name": "TOTAL PLAY",
+      "type": "SERVICIO",
+      "credit_limit": 0,
+      "cut_day": null,
+      "payment_day": 28,
+      "current_debt": 0,
+      "periodicity": "MENSUAL",
+      "payment_no_interest": 0,
+      "available_credit": 0,
+      "liquidation_amount": 0
+    },
+    {
+      "id": 78,
+      "name": "SUBURBIA",
+      "type": "TDC",
+      "credit_limit": 9000,
+      "cut_day": null,
+      "payment_day": 29,
+      "current_debt": 4125.57,
+      "periodicity": "MENSUAL",
+      "payment_no_interest": 0,
+      "available_credit": 0,
+      "liquidation_amount": 0
+    }
+  ],
+  "transactions": [
+    {
+      "id": 10,
+      "date": "2026-03-16 12:00:00",
+      "amount": 9900,
+      "sender_id": 1,
+      "receiver_id": 2,
+      "concept": "Pago TDC Bancoppel",
+      "credit_line_id": null,
+      "is_salary": 0,
+      "interest_amount": 0
+    },
+    {
+      "id": 11,
+      "date": "2026-03-17 12:00:00",
+      "amount": 19700,
+      "sender_id": 1,
+      "receiver_id": 2,
+      "concept": "Efectivo para TDC BBVA",
+      "credit_line_id": null,
+      "is_salary": 0,
+      "interest_amount": 0
+    },
+    {
+      "id": 12,
+      "date": "2026-03-28 12:00:00",
+      "amount": 5000,
+      "sender_id": 1,
+      "receiver_id": 2,
+      "concept": "Préstamo Suburbia y otras",
+      "credit_line_id": null,
+      "is_salary": 0,
+      "interest_amount": 0
+    },
+    {
+      "id": 13,
+      "date": "2026-04-13 12:00:00",
+      "amount": 9000,
+      "sender_id": 1,
+      "receiver_id": 2,
+      "concept": "Efectivo BBVA y Bancoppel",
+      "credit_line_id": null,
+      "is_salary": 0,
+      "interest_amount": 0
+    },
+    {
+      "id": 14,
+      "date": "2026-04-25 12:00:00",
+      "amount": 50860,
+      "sender_id": 1,
+      "receiver_id": 2,
+      "concept": "Liquidación deuda Coppel",
+      "credit_line_id": null,
+      "is_salary": 0,
+      "interest_amount": 0
+    },
+    {
+      "id": 15,
+      "date": "2026-04-26 12:00:00",
+      "amount": 1500,
+      "sender_id": 1,
+      "receiver_id": 2,
+      "concept": "Efectivo para Erika",
+      "credit_line_id": null,
+      "is_salary": 0,
+      "interest_amount": 0
+    },
+    {
+      "id": 16,
+      "date": "2026-04-14 12:00:00",
+      "amount": 6250,
+      "sender_id": 2,
+      "receiver_id": 1,
+      "concept": "Pago en efectivo",
+      "credit_line_id": null,
+      "is_salary": 0,
+      "interest_amount": 0
+    },
+    {
+      "id": 17,
+      "date": "2026-04-18 12:00:00",
+      "amount": 631.26,
+      "sender_id": 2,
+      "receiver_id": 1,
+      "concept": "Pedidos equipo Amazon",
+      "credit_line_id": null,
+      "is_salary": 0,
+      "interest_amount": 0
+    },
+    {
+      "id": 18,
+      "date": "2026-04-25 15:00:00",
+      "amount": 50000,
+      "sender_id": 2,
+      "receiver_id": 1,
+      "concept": "Nuevo Préstamo Coppel (Efec.)",
+      "credit_line_id": null,
+      "is_salary": 0,
+      "interest_amount": 0
+    },
+    {
+      "id": 19,
+      "date": "2026-05-02T21:29:57.777Z",
+      "amount": 50000,
+      "sender_id": 1,
+      "receiver_id": 2,
+      "concept": "Liquidaci�n Pr�stamo Bancoppel (Total)",
+      "credit_line_id": 67,
+      "is_salary": 0,
+      "interest_amount": 2162
+    },
+    {
+      "id": 20,
+      "date": "2026-05-02T21:29:57.827Z",
+      "amount": 50000,
+      "sender_id": 2,
+      "receiver_id": 1,
+      "concept": "Nuevo Pr�stamo Bancoppel (Efectivo)",
+      "credit_line_id": null,
+      "is_salary": 0,
+      "interest_amount": 0
+    },
+    {
+      "id": 21,
+      "date": "2026-05-02T21:29:57.852Z",
+      "amount": 1500,
+      "sender_id": 1,
+      "receiver_id": 2,
+      "concept": "Efectivo para gasto de Erika (Extra)",
+      "credit_line_id": null,
+      "is_salary": 0,
+      "interest_amount": 0
+    },
+    {
+      "id": 22,
+      "date": "2026-05-03T12:00:00.000Z",
+      "amount": 1100,
+      "sender_id": 1,
+      "receiver_id": 2,
+      "concept": "PAGO DE TDC NU Y COMPRAS EN SAMS",
+      "credit_line_id": 66,
+      "is_salary": 0,
+      "interest_amount": 0
+    },
+    {
+      "id": 23,
+      "date": "2026-05-04T12:00:00.000Z",
+      "amount": 126,
+      "sender_id": 1,
+      "receiver_id": 2,
+      "concept": "COMPLETAR PAGO TDC NU",
+      "credit_line_id": 66,
+      "is_salary": 0,
+      "interest_amount": 0
+    },
+    {
+      "id": 24,
+      "date": "2026-05-08T12:00:00.000Z",
+      "amount": 50000,
+      "sender_id": 1,
+      "receiver_id": 2,
+      "concept": "Liquidación préstamo personal Bancoppel",
+      "credit_line_id": 67,
+      "is_salary": 0,
+      "interest_amount": 2162
+    },
+    {
+      "id": 25,
+      "date": "2026-05-08T12:05:00.000Z",
+      "amount": 50000,
+      "sender_id": 2,
+      "receiver_id": 1,
+      "concept": "Efectivo de Victor a Alfonso",
+      "credit_line_id": null,
+      "is_salary": 0,
+      "interest_amount": 0
+    },
+    {
+      "id": 26,
+      "date": "2026-05-08T12:10:00.000Z",
+      "amount": 1500,
+      "sender_id": 1,
+      "receiver_id": 2,
+      "concept": "Transferencia para pagar TDC INVEX WALMART",
+      "credit_line_id": 76,
+      "is_salary": 0,
+      "interest_amount": 0
+    }
+  ],
+  "salaries": [
+    {
+      "id": 17,
+      "week_number": 11,
+      "date": "2026-03-11",
+      "amount": 5000,
+      "status": "PAGADO"
+    },
+    {
+      "id": 18,
+      "week_number": 12,
+      "date": "2026-03-19",
+      "amount": 5000,
+      "status": "PENDIENTE"
+    },
+    {
+      "id": 19,
+      "week_number": 13,
+      "date": "2026-03-26",
+      "amount": 5000,
+      "status": "PENDIENTE"
+    },
+    {
+      "id": 20,
+      "week_number": 14,
+      "date": "2026-04-02",
+      "amount": 5000,
+      "status": "PENDIENTE"
+    },
+    {
+      "id": 21,
+      "week_number": 15,
+      "date": "2026-04-09",
+      "amount": 5000,
+      "status": "PENDIENTE"
+    },
+    {
+      "id": 22,
+      "week_number": 16,
+      "date": "2026-04-16",
+      "amount": 5000,
+      "status": "PENDIENTE"
+    },
+    {
+      "id": 23,
+      "week_number": 17,
+      "date": "2026-04-23",
+      "amount": 5000,
+      "status": "PENDIENTE"
+    },
+    {
+      "id": 24,
+      "week_number": 18,
+      "date": "2026-04-30",
+      "amount": 5000,
+      "status": "PENDIENTE"
+    },
+    {
+      "id": 25,
+      "week_number": 19,
+      "date": "2026-05-07",
+      "amount": 5000,
+      "status": "PENDIENTE"
+    }
+  ]
+}
