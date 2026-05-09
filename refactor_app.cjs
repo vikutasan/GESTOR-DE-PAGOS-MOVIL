@@ -1,5 +1,6 @@
 const fs = require('fs');
-const file = 'C:/Users/servidor1/.gemini/antigravity/scratch/gestor_pagos_mobile/src/App.jsx';
+const path = require('path');
+const file = path.join(__dirname, 'src', 'App.jsx');
 let content = fs.readFileSync(file, 'utf8');
 
 // Añadir importación de db.js
