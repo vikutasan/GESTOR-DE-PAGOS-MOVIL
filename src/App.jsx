@@ -297,6 +297,34 @@ function App() {
               </button>
             </header>
 
+            <div className="card print-resultado" style={{ marginBottom: '1.5rem', background: 'var(--bg-dark)', padding: '1.5rem', textAlign: 'center', borderRadius: '8px' }}>
+              {(() => {
+                const alfonsoTotal = combinedHistory.reduce((acc, item) => {
+                  if (item._type === 'transaction' && item.sender_id === 1) return acc + item.amount;
+                  if (item._type === 'salary' && item.week_number <= 11) return acc;
+                  if (item._type === 'salary' && item.status === 'PAGADO') return acc + (item.amount || 5000);
+                  return acc;
+                }, 0);
+                
+                const victorTotal = combinedHistory.reduce((acc, item) => {
+                  if (item._type === 'transaction' && item.sender_id === 2) return acc + item.amount;
+                  if (item._type === 'salary' && item.week_number <= 11) return acc;
+                  if (item._type === 'salary' && item.status === 'PENDIENTE') return acc + (item.amount || 5000);
+                  return acc;
+                }, 0);
+                
+                const diff = alfonsoTotal - victorTotal;
+                
+                if (diff > 0) {
+                  return <span style={{ color: 'var(--accent-red)', fontSize: '1.4rem' }}>RESULTADO: Víctor aún debe a Alfonso <strong>${Math.abs(diff).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></span>;
+                } else if (diff < 0) {
+                  return <span style={{ color: 'var(--accent-green)', fontSize: '1.4rem' }}>RESULTADO: Alfonso aún debe a Víctor <strong>${Math.abs(diff).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></span>;
+                } else {
+                  return <span style={{ color: 'var(--text-secondary)', fontSize: '1.4rem' }}>RESULTADO: Nadie le debe a nadie (Están a mano)</span>;
+                }
+              })()}
+            </div>
+
             <div className="card">
               <h2 style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>Historial de Movimientos</h2>
               <div className="table-container">
@@ -381,35 +409,7 @@ function App() {
                         }, 0).toLocaleString()}
                       </td>
                     </tr>
-                    <tr style={{ background: 'var(--bg-dark)' }}>
-                      <td colSpan="5" style={{ textAlign: 'center', fontSize: '1.2rem', padding: '1rem', color: 'var(--text-primary)' }}>
-                        {(() => {
-                          const alfonsoTotal = combinedHistory.reduce((acc, item) => {
-                            if (item._type === 'transaction' && item.sender_id === 1) return acc + item.amount;
-                            if (item._type === 'salary' && item.week_number <= 11) return acc;
-                            if (item._type === 'salary' && item.status === 'PAGADO') return acc + (item.amount || 5000);
-                            return acc;
-                          }, 0);
-                          
-                          const victorTotal = combinedHistory.reduce((acc, item) => {
-                            if (item._type === 'transaction' && item.sender_id === 2) return acc + item.amount;
-                            if (item._type === 'salary' && item.week_number <= 11) return acc;
-                            if (item._type === 'salary' && item.status === 'PENDIENTE') return acc + (item.amount || 5000);
-                            return acc;
-                          }, 0);
-                          
-                          const diff = alfonsoTotal - victorTotal;
-                          
-                          if (diff > 0) {
-                            return <span style={{ color: 'var(--accent-red)' }}>RESULTADO: Víctor aún debe a Alfonso <strong style={{fontSize: '1.4rem'}}>${Math.abs(diff).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></span>;
-                          } else if (diff < 0) {
-                            return <span style={{ color: 'var(--accent-green)' }}>RESULTADO: Alfonso aún debe a Víctor <strong style={{fontSize: '1.4rem'}}>${Math.abs(diff).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></span>;
-                          } else {
-                            return <span style={{ color: 'var(--text-secondary)' }}>RESULTADO: Nadie le debe a nadie (Están a mano)</span>;
-                          }
-                        })()}
-                      </td>
-                    </tr>
+
                   </tfoot>
                 </table>
               </div>
