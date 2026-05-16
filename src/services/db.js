@@ -184,20 +184,16 @@ export const getSuggestions = async () => {
   
   if (tdcCards.length === 0) return null;
 
-  let bestCard = null;
-  let minDiff = 31;
-
   tdcCards.forEach(card => {
     let diff = today - card.cut_day;
     if (diff < 0) diff += 30;
-    
-    if (diff >= 0 && diff < minDiff) {
-      minDiff = diff;
-      bestCard = card;
-    }
+    card.daysSinceCut = diff;
   });
 
-  return { bestCard, daysSinceCut: minDiff };
+  tdcCards.sort((a, b) => a.daysSinceCut - b.daysSinceCut);
+
+  const bestCards = tdcCards.slice(0, 3);
+  return { suggestions: bestCards };
 };
 
 export const syncCard = async (id, metadata) => {
