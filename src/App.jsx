@@ -248,14 +248,16 @@ function App() {
                 </div>
               </div>
 
-              {suggestion && suggestion.bestCard && (
+              {suggestion && suggestion.suggestions && suggestion.suggestions.length > 0 && (
                 <div className="card" style={{ borderLeft: '4px solid var(--accent-purple)' }}>
                   <div className="stat-label" style={{color: 'var(--accent-purple)'}}>Sugerencia Inteligente</div>
-                  <div className="stat-value" style={{fontSize: '1.5rem', marginTop: '0.5rem'}}>
-                    Usa <span style={{color: 'var(--accent-blue)'}}>{suggestion.bestCard.name}</span>
-                  </div>
-                  <div className="stat-label" style={{marginTop: '0.25rem'}}>
-                    Corte hace {suggestion.daysSinceCut} días.
+                  <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {suggestion.suggestions.map((card, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                         <span style={{color: i === 0 ? 'var(--accent-blue)' : 'var(--text-primary)', fontWeight: 'bold', fontSize: i === 0 ? '1.1rem' : '0.9rem'}}>{i + 1}. Usa {card.name}</span>
+                         <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Corte hace {card.daysSinceCut} días</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
