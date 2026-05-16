@@ -20,13 +20,15 @@ import './App.css';
 import { initDB, getDashboard, getCards, saveCard, getTransactions, saveTransaction, getSalaries, updateSalaryStatus, getSuggestions, syncCard } from './services/db';
 
 function App() {
-  const [activeModule, setActiveModule] = useState('payments'); // 'payments' or 'salaries'
+  const [activeModule, setActiveModule] = useState('payments');
+  const [debtTab, setDebtTab] = useState('alfonso');
   const [dashboard, setDashboard] = useState({ accounts: [], totalDebt: 0 });
   const [cards, setCards] = useState([]);
   const [salaries, setSalaries] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [combinedHistory, setCombinedHistory] = useState([]);
-  const [suggestion, setSuggestion] = useState(null);
+  const [suggestionAlf, setSuggestionAlf] = useState(null);
+  const [suggestionVic, setSuggestionVic] = useState(null);
   
   // Sync Module State
   const [syncFile, setSyncFile] = useState(null);
@@ -47,7 +49,8 @@ function App() {
   const [cardData, setCardData] = useState({
     name: '', type: 'TDC', periodicity: 'MENSUAL', credit_limit: '', 
     cut_day: '', payment_day: '', current_debt: '', 
-    payment_no_interest: '', available_credit: '', liquidation_amount: ''
+    payment_no_interest: '', available_credit: '', liquidation_amount: '',
+    managed_by: 'alfonso'
   });
 
   const fetchData = async () => {
@@ -59,95 +62,7 @@ function App() {
       const cardsData = await getCards();
       setCards(cardsData);
 
-      const sugData = await getSuggestions();
-      setSuggestion(sugData);
-
-      const salData = await getSalaries();
-      setSalaries(salData);
-
-      const transData = await getTransactions();
-      setTransactions(transData);
-
-      // Combinar para el historial
-      const history = [
-        ...transData.map(t => ({ ...t, _type: 'transaction' })),
-        ...salData.map(s => ({ ...s, _type: 'salary' }))
-      ].sort((a, b) => new Date(b.date) - new Date(a.date));
-      setCombinedHistory(history);
-    } catch (e) {
-      console.error("Error fetching data:", e);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    const handleBeforePrint = () => {
-      const now = new Date();
-      const datePart = now.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-').toUpperCase();
-      const timePart = now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '-');
-      document.title = `BALANCE AL ${datePart} Y ${timePart}`;
-    };
-    
-    const handleAfterPrint = () => {
-      document.title = 'Suite A&V';
-    };
-
-    window.addEventListener('beforeprint', handleBeforePrint);
-    window.addEventListener('afterprint', handleAfterPrint);
-    
-    document.title = 'Suite A&V';
-
-    return () => {
-      window.removeEventListener('beforeprint', handleBeforePrint);
-      window.removeEventListener('afterprint', handleAfterPrint);
-    };
-  }, []);
-
-  const handleTransactionSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await saveTransaction(formData, editingTransactionId);
-      setIsModalOpen(false);
-      setEditingTransactionId(null);
-      setFormData({ amount: '', sender_id: '1', receiver_id: '2', concept: '', is_salary: false, interest_amount: '', credit_line_id: '', date: '' });
-      fetchData();
-    } catch (e) {
-      console.error("Error submitting transaction", e);
-    }
-  };
-
-  const openEditTransactionModal = (t) => {
-    setEditingTransactionId(t.id);
-    setFormData({
-      amount: t.amount,
-      sender_id: t.sender_id ? t.sender_id.toString() : '1',
-      receiver_id: t.receiver_id ? t.receiver_id.toString() : '2',
-      concept: t.concept,
-      is_salary: t.is_salary === 1,
-      interest_amount: t.interest_amount || '',
-      credit_line_id: t.credit_line_id || '',
-      date: t.date ? t.date.split('T')[0] : ''
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleCardSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await saveCard(cardData, editingCardId);
-      setIsCardModalOpen(false);
-      fetchData();
-    } catch (e) {
-      console.error("Error saving card", e);
-    }
-  };
-
-  const handleSalaryStatusChange = async (id, newStatus) => {
-    try {
-      await updateSalaryStatus(id, newStatus);
+      const sugResA = await updateSalaryStatus(id, newStatus);
       fetchData();
     } catch (e) {
       console.error("Error updating salary status", e);
@@ -163,7 +78,8 @@ function App() {
       setCardData({
         name: '', type: 'TDC', periodicity: 'MENSUAL', credit_limit: '', 
         cut_day: '', payment_day: '', current_debt: '', 
-        payment_no_interest: '', available_credit: '', liquidation_amount: ''
+        payment_no_interest: '', available_credit: '', liquidation_amount: '',
+        managed_by: debtTab
       });
     }
     setIsCardModalOpen(true);
@@ -232,77 +148,108 @@ function App() {
             <header>
               <h1>GESTIÓN DE PAGOS DE DEUDAS</h1>
               <div style={{ display: 'flex', gap: '1rem' }}>
-                <button className="btn" onClick={() => setIsModalOpen(true)}>
-                  <Plus size={20} /> Registrar Operación
-                </button>
                 <button className="btn" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'white' }} onClick={() => openCardModal(null)}>
                   <Plus size={20} /> Añadir Ficha
                 </button>
               </div>
             </header>
-            <div className="dashboard-grid">
-              <div className="card">
-                <div className="stat-label">Deuda Total Acumulada</div>
-                <div className="stat-value text-red">
-                  ${dashboard.totalDebt ? dashboard.totalDebt.toLocaleString() : '0.00'}
-                </div>
-              </div>
 
-              {suggestion && suggestion.suggestions && suggestion.suggestions.length > 0 && (
-                <div className="card" style={{ borderLeft: '4px solid var(--accent-purple)' }}>
-                  <div className="stat-label" style={{color: 'var(--accent-purple)'}}>Sugerencia Inteligente</div>
-                  <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {suggestion.suggestions.map((card, i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                         <span style={{color: i === 0 ? 'var(--accent-blue)' : 'var(--text-primary)', fontWeight: 'bold', fontSize: i === 0 ? '1.1rem' : '0.9rem'}}>{i + 1}. Usa {card.name}</span>
-                         <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Corte hace {card.daysSinceCut} días</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+            {/* TABS Alfonso / Victor */}
+            <div style={{ display: 'flex', gap: '0', marginBottom: '1.5rem', borderBottom: '2px solid var(--border-color)' }}>
+              <button 
+                onClick={() => setDebtTab('alfonso')}
+                style={{ 
+                  padding: '0.75rem 2rem', fontWeight: 'bold', fontSize: '0.95rem', cursor: 'pointer',
+                  background: debtTab === 'alfonso' ? 'var(--accent-blue)' : 'transparent',
+                  color: debtTab === 'alfonso' ? '#fff' : 'var(--text-secondary)',
+                  border: 'none', borderRadius: '8px 8px 0 0', transition: 'all 0.2s ease'
+                }}
+              >
+                Deudas Adm. por Alfonso
+              </button>
+              <button 
+                onClick={() => setDebtTab('victor')}
+                style={{ 
+                  padding: '0.75rem 2rem', fontWeight: 'bold', fontSize: '0.95rem', cursor: 'pointer',
+                  background: debtTab === 'victor' ? 'var(--accent-purple)' : 'transparent',
+                  color: debtTab === 'victor' ? '#fff' : 'var(--text-secondary)',
+                  border: 'none', borderRadius: '8px 8px 0 0', transition: 'all 0.2s ease'
+                }}
+              >
+                Deudas Adm. por Víctor
+              </button>
+            </div>
 
-              {(() => {
-                const urgentCards = cards.map(c => {
-                  const today = new Date().getDate();
-                  let daysUntil = null;
-                  if (c.payment_day) {
-                    daysUntil = c.payment_day - today;
-                    if (daysUntil < 0) daysUntil += 30;
-                  }
-                  return { ...c, daysUntil };
-                }).filter(c => c.daysUntil !== null && c.current_debt > 0 && c.daysUntil <= 7)
-                  .sort((a, b) => a.daysUntil - b.daysUntil);
+            {(() => {
+              const tabCards = cards.filter(c => (c.managed_by || 'alfonso') === debtTab);
+              const suggestion = debtTab === 'alfonso' ? suggestionAlf : suggestionVic;
+              const tabDebt = tabCards.reduce((acc, c) => acc + (c.current_debt || 0), 0);
 
-                if (urgentCards.length > 0) {
-                  return (
-                    <div className="card" style={{ borderLeft: '4px solid var(--accent-red)' }}>
-                      <div className="stat-label" style={{color: 'var(--accent-red)'}}>Foco Rojo (Próximos a Pagar)</div>
-                      <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {urgentCards.map((uc, i) => (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontWeight: 'bold' }}>{uc.name}</span>
-                            <span style={{ fontSize: '0.85rem', color: uc.daysUntil <= 3 ? 'var(--accent-red)' : 'var(--accent-purple)', fontWeight: 'bold' }}>
-                              {uc.daysUntil === 0 ? 'HOY' : `en ${uc.daysUntil} días`}
-                            </span>
-                          </div>
-                        ))}
+              return (
+                <>
+                  <div className="dashboard-grid">
+                    <div className="card">
+                      <div className="stat-label">Deuda Total Acumulada</div>
+                      <div className="stat-value text-red">
+                        ${tabDebt ? tabDebt.toLocaleString() : '0.00'}
                       </div>
                     </div>
-                  );
-                }
-                return null;
-              })()}
-            </div>
+
+                    {suggestion && suggestion.suggestions && suggestion.suggestions.length > 0 && (
+                      <div className="card" style={{ borderLeft: '4px solid var(--accent-purple)' }}>
+                        <div className="stat-label" style={{color: 'var(--accent-purple)'}}>Sugerencia Inteligente</div>
+                        <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {suggestion.suggestions.map((card, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                               <span style={{color: i === 0 ? 'var(--accent-blue)' : 'var(--text-primary)', fontWeight: 'bold', fontSize: i === 0 ? '1.1rem' : '0.9rem'}}>{i + 1}. Usa {card.name}</span>
+                               <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Corte hace {card.daysSinceCut} días</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(() => {
+                      const urgentCards = tabCards.map(c => {
+                        const today = new Date().getDate();
+                        let daysUntil = null;
+                        if (c.payment_day) {
+                          daysUntil = c.payment_day - today;
+                          if (daysUntil < 0) daysUntil += 30;
+                        }
+                        return { ...c, daysUntil };
+                      }).filter(c => c.daysUntil !== null && c.current_debt > 0 && c.daysUntil <= 7)
+                        .sort((a, b) => a.daysUntil - b.daysUntil);
+
+                      if (urgentCards.length > 0) {
+                        return (
+                          <div className="card" style={{ borderLeft: '4px solid var(--accent-red)' }}>
+                            <div className="stat-label" style={{color: 'var(--accent-red)'}}>Foco Rojo (Próximos a Pagar)</div>
+                            <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                              {urgentCards.map((uc, i) => (
+                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span style={{ fontWeight: 'bold' }}>{uc.name}</span>
+                                  <span style={{ fontSize: '0.85rem', color: uc.daysUntil <= 3 ? 'var(--accent-red)' : 'var(--accent-purple)', fontWeight: 'bold' }}>
+                                    {uc.daysUntil === 0 ? 'HOY' : `en ${uc.daysUntil} días`}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
 
             <h2 style={{ marginBottom: '1.5rem' }}>Tarjetas y Créditos (Próximos Vencimientos)</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {[...cards].sort((a, b) => {
+              {[...tabCards].sort((a, b) => {
                 const today = new Date().getDate();
                 const getDaysUntil = (day) => {
-                  if (!day) return 999; // Si no tiene fecha, hasta abajo
+                  if (!day) return 999;
                   let diff = day - today;
-                  if (diff < 0) diff += 30; // Aproximación mensual
+                  if (diff < 0) diff += 30;
                   return diff;
                 };
                 return getDaysUntil(a.payment_day) - getDaysUntil(b.payment_day);
@@ -376,6 +323,9 @@ function App() {
                 );
               })}
             </div>
+                </>
+              );
+            })()}
           </div>
         ) : activeModule === 'contributions' ? (
           <div className="app-container animate-fade-in">
@@ -895,6 +845,15 @@ function App() {
                       <option value="TDC">Tarjeta de Crédito</option>
                       <option value="SERVICIOS">Servicio</option>
                       <option value="CREDITO DEPARTAMENTAL">Crédito Dep.</option>
+                    </select>
+                  </div>
+
+                  {/* Administrada por */}
+                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                    <label className="stat-label">Administrada por</label>
+                    <select className="status-select" style={{width: '100%'}} value={cardData.managed_by || 'alfonso'} onChange={e => setCardData({...cardData, managed_by: e.target.value})}>
+                      <option value="alfonso">Alfonso</option>
+                      <option value="victor">Víctor</option>
                     </select>
                   </div>
 
