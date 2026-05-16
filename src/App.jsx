@@ -12,7 +12,8 @@ import {
   DollarSign,
   UploadCloud,
   AlertTriangle,
-  ShieldAlert
+  ShieldAlert,
+  FileDown
 } from 'lucide-react';
 import { parseBankStatement } from './utils/BankParser';
 import './App.css';
@@ -42,6 +43,7 @@ function App() {
   });
 
   const [editingCardId, setEditingCardId] = useState(null);
+  const [editingTransactionId, setEditingTransactionId] = useState(null);
   const [cardData, setCardData] = useState({
     name: '', type: 'TDC', periodicity: 'MENSUAL', credit_limit: '', 
     cut_day: '', payment_day: '', current_debt: '', 
@@ -81,16 +83,55 @@ function App() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    const handleBeforePrint = () => {
+      const now = new Date();
+      const datePart = now.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-').toUpperCase();
+      const timePart = now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '-');
+      document.title = `BALANCE AL ${datePart} Y ${timePart}`;
+    };
+    
+    const handleAfterPrint = () => {
+      document.title = 'Suite A&V';
+    };
+
+    window.addEventListener('beforeprint', handleBeforePrint);
+    window.addEventListener('afterprint', handleAfterPrint);
+    
+    document.title = 'Suite A&V';
+
+    return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+  }, []);
+
   const handleTransactionSubmit = async (e) => {
     e.preventDefault();
     try {
-      await saveTransaction(formData);
+      await saveTransaction(formData, editingTransactionId);
       setIsModalOpen(false);
+      setEditingTransactionId(null);
       setFormData({ amount: '', sender_id: '1', receiver_id: '2', concept: '', is_salary: false, interest_amount: '', credit_line_id: '', date: '' });
       fetchData();
     } catch (e) {
       console.error("Error submitting transaction", e);
     }
+  };
+
+  const openEditTransactionModal = (t) => {
+    setEditingTransactionId(t.id);
+    setFormData({
+      amount: t.amount,
+      sender_id: t.sender_id ? t.sender_id.toString() : '1',
+      receiver_id: t.receiver_id ? t.receiver_id.toString() : '2',
+      concept: t.concept,
+      is_salary: t.is_salary === 1,
+      interest_amount: t.interest_amount || '',
+      credit_line_id: t.credit_line_id || '',
+      date: t.date ? t.date.split('T')[0] : ''
+    });
+    setIsModalOpen(true);
   };
 
   const handleCardSubmit = async (e) => {
@@ -189,7 +230,7 @@ function App() {
         {activeModule === 'payments' ? (
           <div className="app-container animate-fade-in">
             <header>
-              <h1>GESTIÓN DE PAGOS A&V</h1>
+              <h1>GESTIÓN DE PAGOS DE DEUDAS</h1>
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <button className="btn" onClick={() => setIsModalOpen(true)}>
                   <Plus size={20} /> Registrar Operación
@@ -199,15 +240,7 @@ function App() {
                 </button>
               </div>
             </header>
-
             <div className="dashboard-grid">
-              <div className="card">
-                <div className="stat-label">Estado de Cuentas</div>
-                <div className={`stat-value ${getBalanceStatus().color}`}>
-                  {getBalanceStatus().text}
-                </div>
-              </div>
-
               <div className="card">
                 <div className="stat-label">Deuda Total Acumulada</div>
                 <div className="stat-value text-red">
@@ -226,6 +259,38 @@ function App() {
                   </div>
                 </div>
               )}
+
+              {(() => {
+                const urgentCards = cards.map(c => {
+                  const today = new Date().getDate();
+                  let daysUntil = null;
+                  if (c.payment_day) {
+                    daysUntil = c.payment_day - today;
+                    if (daysUntil < 0) daysUntil += 30;
+                  }
+                  return { ...c, daysUntil };
+                }).filter(c => c.daysUntil !== null && c.current_debt > 0 && c.daysUntil <= 7)
+                  .sort((a, b) => a.daysUntil - b.daysUntil);
+
+                if (urgentCards.length > 0) {
+                  return (
+                    <div className="card" style={{ borderLeft: '4px solid var(--accent-red)' }}>
+                      <div className="stat-label" style={{color: 'var(--accent-red)'}}>Foco Rojo (Próximos a Pagar)</div>
+                      <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {urgentCards.map((uc, i) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 'bold' }}>{uc.name}</span>
+                            <span style={{ fontSize: '0.85rem', color: uc.daysUntil <= 3 ? 'var(--accent-red)' : 'var(--accent-purple)', fontWeight: 'bold' }}>
+                              {uc.daysUntil === 0 ? 'HOY' : `en ${uc.daysUntil} días`}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             <h2 style={{ marginBottom: '1.5rem' }}>Tarjetas y Créditos (Próximos Vencimientos)</h2>
@@ -260,24 +325,46 @@ function App() {
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.05)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>{card.type}</span>
                       </div>
                       
-                      <div style={{ flex: 1, display: 'flex', gap: '2rem' }}>
+                      <div style={{ flex: 1, display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
                         <div>
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block' }}>Deuda Actual</span>
-                          <span style={{ fontWeight: 'bold', color: card.current_debt > 0 ? 'var(--accent-red)' : 'var(--text-primary)' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.1rem' }}>Crédito Autorizado</span>
+                          <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
+                            ${(card.credit_limit || 0).toLocaleString()}
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.1rem' }}>Deuda Total</span>
+                          <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: card.current_debt > 0 ? 'var(--accent-red)' : 'var(--text-primary)' }}>
                             ${(card.current_debt || 0).toLocaleString()}
                           </span>
                         </div>
                         <div>
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block' }}>Día Límite</span>
-                          <span style={{ fontWeight: 'bold' }}>{card.payment_day || 'N/A'}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.1rem' }}>Saldo Disponible</span>
+                          <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: 'var(--accent-green)' }}>
+                            ${(card.available_credit || 0).toLocaleString()}
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.1rem' }}>Fecha de Corte</span>
+                          <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{card.cut_day || 'N/A'}</span>
                         </div>
                       </div>
                     </div>
                     
                     <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
                       <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block' }}>Vence en</span>
-                        <span style={{ fontWeight: '900', color: urgencyColor }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.1rem' }}>Pago (Sin Int.)</span>
+                        <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: card.payment_no_interest > 0 ? 'var(--accent-purple)' : 'var(--text-primary)' }}>
+                          ${(card.payment_no_interest || 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.1rem' }}>Fecha Límite</span>
+                        <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{card.payment_day || 'N/A'}</span>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.1rem' }}>Vence en</span>
+                        <span style={{ fontWeight: '900', color: urgencyColor, fontSize: '0.9rem' }}>
                           {daysUntil !== null ? (daysUntil === 0 ? 'HOY' : `${daysUntil} días`) : 'N/A'}
                         </span>
                       </div>
@@ -292,41 +379,53 @@ function App() {
           <div className="app-container animate-fade-in">
             <header>
               <h1>APORTACIONES DE ALFONSO Y DE VICTOR</h1>
-              <button className="btn" onClick={() => setIsModalOpen(true)}>
-                <Plus size={20} /> Registrar Aportación
-              </button>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button className="btn" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'white' }} onClick={() => {
+                  window.print();
+                }}>
+                  <FileDown size={20} /> Exportar PDF
+                </button>
+                <button className="btn" onClick={() => {
+                  setEditingTransactionId(null);
+                  setFormData({ amount: '', sender_id: '1', receiver_id: '2', concept: '', is_salary: false, interest_amount: '', credit_line_id: '', date: '' });
+                  setIsModalOpen(true);
+                }}>
+                  <Plus size={20} /> Registrar Aportación
+                </button>
+              </div>
             </header>
-
-            <div className="card print-resultado" style={{ marginBottom: '1.5rem', background: 'var(--bg-dark)', padding: '1.5rem', textAlign: 'center', borderRadius: '8px' }}>
-              {(() => {
-                const alfonsoTotal = combinedHistory.reduce((acc, item) => {
-                  if (item._type === 'transaction' && item.sender_id === 1) return acc + item.amount;
-                  if (item._type === 'salary' && item.week_number <= 11) return acc;
-                  if (item._type === 'salary' && item.status === 'PAGADO') return acc + (item.amount || 5000);
-                  return acc;
-                }, 0);
-                
-                const victorTotal = combinedHistory.reduce((acc, item) => {
-                  if (item._type === 'transaction' && item.sender_id === 2) return acc + item.amount;
-                  if (item._type === 'salary' && item.week_number <= 11) return acc;
-                  if (item._type === 'salary' && item.status === 'PENDIENTE') return acc + (item.amount || 5000);
-                  return acc;
-                }, 0);
-                
-                const diff = alfonsoTotal - victorTotal;
-                
-                if (diff > 0) {
-                  return <span style={{ color: 'var(--accent-red)', fontSize: '1.4rem' }}>RESULTADO: Víctor aún debe a Alfonso <strong>${Math.abs(diff).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></span>;
-                } else if (diff < 0) {
-                  return <span style={{ color: 'var(--accent-green)', fontSize: '1.4rem' }}>RESULTADO: Alfonso aún debe a Víctor <strong>${Math.abs(diff).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></span>;
-                } else {
-                  return <span style={{ color: 'var(--text-secondary)', fontSize: '1.4rem' }}>RESULTADO: Nadie le debe a nadie (Están a mano)</span>;
-                }
-              })()}
-            </div>
 
             <div className="card">
               <h2 style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>Historial de Movimientos</h2>
+              
+              <div style={{ background: 'var(--bg-dark)', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1.5rem', textAlign: 'center', fontSize: '1.2rem', border: '1px solid var(--border-color)' }}>
+                {(() => {
+                  const alfonsoTotal = combinedHistory.reduce((acc, item) => {
+                    if (item._type === 'transaction' && item.sender_id === 1) return acc + item.amount;
+                    if (item._type === 'salary' && item.week_number <= 11) return acc;
+                    if (item._type === 'salary' && item.status === 'PAGADO') return acc + (item.amount || 5000);
+                    return acc;
+                  }, 0);
+                  
+                  const victorTotal = combinedHistory.reduce((acc, item) => {
+                    if (item._type === 'transaction' && item.sender_id === 2) return acc + item.amount;
+                    if (item._type === 'salary' && item.week_number <= 11) return acc;
+                    if (item._type === 'salary' && item.status === 'PENDIENTE') return acc + (item.amount || 5000);
+                    return acc;
+                  }, 0);
+                  
+                  const diff = alfonsoTotal - victorTotal;
+                  
+                  if (diff > 0) {
+                    return <span style={{ color: 'var(--accent-red)' }}>RESULTADO: Víctor aún debe a Alfonso <strong style={{fontSize: '1.4rem'}}>${Math.abs(diff).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></span>;
+                  } else if (diff < 0) {
+                    return <span style={{ color: 'var(--accent-green)' }}>RESULTADO: Alfonso aún debe a Víctor <strong style={{fontSize: '1.4rem'}}>${Math.abs(diff).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></span>;
+                  } else {
+                    return <span style={{ color: 'var(--text-secondary)' }}>RESULTADO: Nadie le debe a nadie (Están a mano)</span>;
+                  }
+                })()}
+              </div>
+
               <div className="table-container">
                 <table>
                   <thead>
@@ -336,6 +435,7 @@ function App() {
                       <th style={{ textAlign: 'right' }}>Aportación Alfonso</th>
                       <th style={{ textAlign: 'right', color: 'var(--accent-purple)' }}>Intereses Pagados</th>
                       <th style={{ textAlign: 'right' }}>Aportación Víctor</th>
+                      <th className="nav-item"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -364,6 +464,11 @@ function App() {
                             <td style={{ textAlign: 'right', fontWeight: 'bold' }}>
                               {t.sender_id === 2 ? `$${t.amount.toLocaleString()}` : '-'}
                             </td>
+                            <td className="nav-item" style={{ textAlign: 'right' }}>
+                              <button style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }} onClick={() => openEditTransactionModal(t)}>
+                                <Edit size={16} />
+                              </button>
+                            </td>
                           </tr>
                         );
                       } else {
@@ -381,6 +486,7 @@ function App() {
                             <td style={{ textAlign: 'right', fontWeight: 'bold', color: s.status === 'PENDIENTE' ? 'var(--accent-red)' : 'inherit' }}>
                               {s.status === 'PENDIENTE' ? `$${(s.amount || 5000).toLocaleString()}` : '-'}
                             </td>
+                            <td className="nav-item"></td>
                           </tr>
                         );
                       }
@@ -408,8 +514,8 @@ function App() {
                           return acc;
                         }, 0).toLocaleString()}
                       </td>
+                      <td className="nav-item"></td>
                     </tr>
-
                   </tfoot>
                 </table>
               </div>
@@ -718,8 +824,11 @@ function App() {
           <div className="modal-overlay" style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
             <div className="modal-content card" style={{ width: '450px', position: 'relative' }}>
               <div className="modal-header" style={{marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between'}}>
-                <h3>Registrar Operación</h3>
-                <button style={{background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.5rem'}} onClick={() => setIsModalOpen(false)}>×</button>
+                <h3>{editingTransactionId ? 'Editar Operación' : 'Registrar Operación'}</h3>
+                <button style={{background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.5rem'}} onClick={() => {
+                  setIsModalOpen(false);
+                  setEditingTransactionId(null);
+                }}>×</button>
               </div>
               <form onSubmit={handleTransactionSubmit}>
                 <div className="form-group" style={{marginBottom: '1rem'}}>
@@ -773,7 +882,8 @@ function App() {
               </div>
               <form onSubmit={handleCardSubmit}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  {/* Renglón 1 */}
+                  <div className="form-group">
                     <label className="stat-label">Nombre</label>
                     <input required type="text" className="status-select" style={{width: '100%'}} value={cardData.name} onChange={e => setCardData({...cardData, name: e.target.value})} />
                   </div>
@@ -785,17 +895,35 @@ function App() {
                       <option value="CREDITO DEPARTAMENTAL">Crédito Dep.</option>
                     </select>
                   </div>
+
+                  {/* Renglón 2 */}
                   <div className="form-group">
-                    <label className="stat-label">Pago Día</label>
-                    <input required type="number" className="status-select" style={{width: '100%'}} value={cardData.payment_day} onChange={e => setCardData({...cardData, payment_day: e.target.value})} />
-                  </div>
-                  <div className="form-group">
-                    <label className="stat-label">Deuda Actual ($)</label>
+                    <label className="stat-label">Deuda Total ($)</label>
                     <input type="number" step="0.01" className="status-select" style={{width: '100%'}} value={cardData.current_debt} onChange={e => setCardData({...cardData, current_debt: e.target.value})} />
                   </div>
                   <div className="form-group">
-                    <label className="stat-label">Límite Crédito ($)</label>
+                    <label className="stat-label">Límite de Crédito ($)</label>
                     <input type="number" step="0.01" className="status-select" style={{width: '100%'}} value={cardData.credit_limit} onChange={e => setCardData({...cardData, credit_limit: e.target.value})} />
+                  </div>
+
+                  {/* Renglón 3 */}
+                  <div className="form-group">
+                    <label className="stat-label">Fecha de Corte (Día)</label>
+                    <input type="number" className="status-select" style={{width: '100%'}} value={cardData.cut_day} onChange={e => setCardData({...cardData, cut_day: e.target.value})} />
+                  </div>
+                  <div className="form-group">
+                    <label className="stat-label">Saldo Disponible ($)</label>
+                    <input type="number" step="0.01" className="status-select" style={{width: '100%'}} value={cardData.available_credit} onChange={e => setCardData({...cardData, available_credit: e.target.value})} />
+                  </div>
+
+                  {/* Renglón 4 */}
+                  <div className="form-group">
+                    <label className="stat-label">Pago para no generar int. ($)</label>
+                    <input type="number" step="0.01" className="status-select" style={{width: '100%'}} value={cardData.payment_no_interest} onChange={e => setCardData({...cardData, payment_no_interest: e.target.value})} />
+                  </div>
+                  <div className="form-group">
+                    <label className="stat-label">Fecha Límite de Pago (Día)</label>
+                    <input required type="number" className="status-select" style={{width: '100%'}} value={cardData.payment_day} onChange={e => setCardData({...cardData, payment_day: e.target.value})} />
                   </div>
                 </div>
                 <button type="submit" className="btn" style={{width: '100%', marginTop: '1.5rem', justifyContent: 'center', background: 'var(--accent-purple)'}}>Guardar Ficha</button>

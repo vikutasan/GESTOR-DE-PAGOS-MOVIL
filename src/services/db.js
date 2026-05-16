@@ -117,20 +117,20 @@ export const getTransactions = async () => {
   return trans.sort((a, b) => new Date(b.date) - new Date(a.date));
 };
 
-export const saveTransaction = async (data) => {
-  const id = Date.now().toString();
+export const saveTransaction = async (data, id = null) => {
+  const tId = id || Date.now().toString();
   const date = data.date ? new Date(data.date).toISOString() : new Date().toISOString();
   const t = {
     ...data,
-    id,
+    id: tId,
     date,
     sender_id: Number(data.sender_id),
     receiver_id: Number(data.receiver_id),
     amount: Number(data.amount),
     interest_amount: Number(data.interest_amount || 0)
   };
-  await dbTransactions.setItem(id, t);
-  return { success: true, id };
+  await dbTransactions.setItem(tId, t);
+  return { success: true, id: tId };
 };
 
 export const getSalaries = async () => {

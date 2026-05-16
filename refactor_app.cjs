@@ -16,7 +16,8 @@ content = content.replace(/const salRes = await fetch.*\/api\/salaries.*\n.*cons
 content = content.replace(/const transRes = await fetch.*\/api\/transactions.*\n.*const transData = await transRes\.json\(\);/g, "const transData = await getTransactions();");
 
 // Reemplazar submit transaction
-content = content.replace(/await fetch\(`?http:\/\/.*?\/api\/transactions`?, \{\n\s*method: 'POST',\n\s*headers: \{ 'Content-Type': 'application\/json' \},\n\s*body: JSON\.stringify\(formData\)\n\s*\}\);/g, "await saveTransaction(formData);");
+const submitTransactionRegex = /const url = editingTransactionId\s*\?[^;]+;\s*const method = editingTransactionId \? 'PUT' : 'POST';\s*await fetch\(url, \{\s*method,\s*headers: \{ 'Content-Type': 'application\/json' \},\s*body: JSON\.stringify\(formData\)\s*\}\);/gs;
+content = content.replace(submitTransactionRegex, "await saveTransaction(formData, editingTransactionId);");
 
 // Reemplazar submit card
 const submitCardRegex = /const url = editingCardId\s*\?[^;]+;\s*const method = editingCardId \? 'PUT' : 'POST';\s*await fetch\(url, \{\s*method,\s*headers: \{ 'Content-Type': 'application\/json' \},\s*body: JSON\.stringify\(cardData\)\s*\}\);/gs;
