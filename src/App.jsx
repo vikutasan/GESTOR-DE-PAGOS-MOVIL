@@ -13,11 +13,12 @@ import {
   UploadCloud,
   AlertTriangle,
   ShieldAlert,
-  FileDown
+  FileDown,
+  Database
 } from 'lucide-react';
 import { parseBankStatement } from './utils/BankParser';
 import './App.css';
-import { initDB, getDashboard, getCards, saveCard, getTransactions, saveTransaction, getSalaries, updateSalaryStatus, getSuggestions, syncCard } from './services/db';
+import { initDB, getDashboard, getCards, saveCard, getTransactions, saveTransaction, getSalaries, updateSalaryStatus, getSuggestions, syncCard, exportAllData, importData } from './services/db';
 
 function App() {
   const [activeModule, setActiveModule] = useState('payments');
@@ -39,6 +40,10 @@ function App() {
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false); // Operaciones
   const [isCardModalOpen, setIsCardModalOpen] = useState(false); // Fichas
+  
+  // Import / Export State
+  const [importText, setImportText] = useState('');
+  const [exportText, setExportText] = useState('');
   
   const [formData, setFormData] = useState({
     amount: '', sender_id: '1', receiver_id: '2', concept: '', is_salary: false, interest_amount: '', credit_line_id: '', date: ''
@@ -137,6 +142,13 @@ function App() {
           >
             <UploadCloud size={20} />
             <span>Sincronizar Banco</span>
+          </button>
+          <button 
+            className={`nav-item ${activeModule === 'import_export' ? 'active' : ''}`}
+            onClick={() => setActiveModule('import_export')}
+          >
+            <Database size={20} />
+            <span>Respaldos (JSON)</span>
           </button>
         </nav>
       </aside>
@@ -768,6 +780,76 @@ function App() {
                 </div>
               </div>
             )}
+          </div>
+        ) : activeModule === 'import_export' ? (
+          <div className="app-container animate-fade-in">
+            <header>
+              <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Database size={28} color="var(--accent-purple)" /> 
+                IMPORTAR Y EXPORTAR DATOS
+              </h1>
+            </header>
+            
+            <div style={{ display: 'flex', gap: '2rem', marginTop: '2rem', flexDirection: 'column' }}>
+              <div className="card" style={{ borderLeft: '4px solid var(--accent-blue)' }}>
+                <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--accent-blue)' }}>1. Exportar Datos (Hacia tu computadora)</h2>
+                <p className="text-secondary" style={{ marginBottom: '1rem' }}>Genera un texto con todas tus tarjetas, operaciones y balances actuales. Cópialo y envíatelo para tener un respaldo.</p>
+                <button 
+                  className="btn" 
+                  style={{ background: 'var(--accent-blue)', marginBottom: '1rem' }}
+                  onClick={async () => {
+                    const json = await exportAllData();
+                    setExportText(json);
+                    navigator.clipboard.writeText(json);
+                    alert("¡Datos copiados al portapapeles!");
+                  }}
+                >
+                  <FileDown size={20} /> Generar y Copiar JSON
+                </button>
+                {exportText && (
+                  <textarea 
+                    className="status-select" 
+                    style={{ width: '100%', height: '150px', fontFamily: 'monospace', fontSize: '0.8rem', padding: '1rem' }} 
+                    readOnly 
+                    value={exportText}
+                  />
+                )}
+              </div>
+
+              <div className="card" style={{ borderLeft: '4px solid var(--accent-red)' }}>
+                <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--accent-red)' }}>2. Importar Datos (Desde tu computadora)</h2>
+                <p className="text-secondary" style={{ marginBottom: '1rem' }}>Pega aquí el código JSON para inyectarlo en tu celular. <strong style={{ color: 'var(--accent-red)' }}>ADVERTENCIA:</strong> Esto borrará tu base de datos actual y la reemplazará por la que pegues aquí.</p>
+                
+                <textarea 
+                  className="status-select" 
+                  style={{ width: '100%', height: '200px', fontFamily: 'monospace', fontSize: '0.8rem', padding: '1rem', marginBottom: '1rem' }} 
+                  placeholder="Pega el texto JSON aquí..."
+                  value={importText}
+                  onChange={(e) => setImportText(e.target.value)}
+                />
+                
+                <button 
+                  className="btn" 
+                  style={{ background: 'var(--accent-red)' }}
+                  disabled={!importText}
+                  onClick={async () => {
+                    if (window.confirm("¿ESTÁS SEGURO? Todos tus datos actuales en este celular se borrarán y serán reemplazados por el texto que pegaste.")) {
+                      try {
+                        await importData(importText);
+                        alert("¡Base de datos importada correctamente!");
+                        setImportText('');
+                        fetchData(); // Recargar el estado
+                        setActiveModule('payments');
+                      } catch (e) {
+                        alert("Error: " + e.message);
+                      }
+                    }
+                  }}
+                >
+                  <AlertTriangle size={20} /> Ejecutar Importación Destructiva
+                </button>
+              </div>
+            </div>
           </div>
         ) : null}
 

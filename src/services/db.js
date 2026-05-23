@@ -206,3 +206,54 @@ export const syncCard = async (id, metadata) => {
   }
   throw new Error("Card not found");
 };
+
+export const exportAllData = async () => {
+  const data = { accounts: [], creditLines: [], transactions: [], salaries: [] };
+  await dbAccounts.iterate((value) => { data.accounts.push(value); });
+  await dbCreditLines.iterate((value) => { data.creditLines.push(value); });
+  await dbTransactions.iterate((value) => { data.transactions.push(value); });
+  await dbSalaries.iterate((value) => { data.salaries.push(value); });
+  return JSON.stringify(data, null, 2);
+};
+
+export const importData = async (jsonString) => {
+  try {
+    const data = JSON.parse(jsonString);
+    if (!data.accounts && !data.creditLines && !data.transactions && !data.salaries) {
+      throw new Error("El JSON no tiene el formato correcto.");
+    }
+    
+    // Clear existing data
+    await dbAccounts.clear();
+    await dbCreditLines.clear();
+    await dbTransactions.clear();
+    await dbSalaries.clear();
+
+    // Import new data
+    if (data.accounts) {
+      for (let acc of data.accounts) {
+        await dbAccounts.setItem(acc.id.toString(), acc);
+      }
+    }
+    if (data.creditLines) {
+      for (let c of data.creditLines) {
+        await dbCreditLines.setItem(c.id.toString(), c);
+      }
+    }
+    if (data.transactions) {
+      for (let t of data.transactions) {
+        await dbTransactions.setItem(t.id.toString(), t);
+      }
+    }
+    if (data.salaries) {
+      for (let s of data.salaries) {
+        await dbSalaries.setItem(s.id.toString(), s);
+      }
+    }
+    
+    localStorage.setItem('db_seeded_v3', 'true');
+    return { success: true };
+  } catch (err) {
+    throw new Error("Error al importar: " + err.message);
+  }
+};
