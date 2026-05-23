@@ -67,11 +67,112 @@ function App() {
       const cardsData = await getCards();
       setCards(cardsData);
 
-      const sugResA = await updateSalaryStatus(id, newStatus);
+      const txData = await getTransactions();
+      setTransactions(txData);
+
+      const salData = await getSalaries();
+      setSalaries(salData);
+
+      // Build combined history
+      const txWithType = txData.map(t => ({ ...t, _type: 'transaction' }));
+      const salWithType = salData.map(s => ({ ...s, _type: 'salary' }));
+      const combined = [...txWithType, ...salWithType].sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateA - dateB;
+      });
+      setCombinedHistory(combined);
+
+      // Suggestions
+      try {
+        const sugA = await getSuggestions('alfonso');
+        setSuggestionAlf(sugA);
+      } catch(e) { console.log('No suggestions for alfonso'); }
+      try {
+        const sugV = await getSuggestions('victor');
+        setSuggestionVic(sugV);
+      } catch(e) { console.log('No suggestions for victor'); }
+
+    } catch (e) {
+      console.error("Error fetching data", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleSalaryStatusChange = async (id, newStatus) => {
+    try {
+      await updateSalaryStatus(id, newStatus);
       fetchData();
     } catch (e) {
       console.error("Error updating salary status", e);
     }
+  };
+
+  const handleTransactionSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const tx = {
+        amount: parseFloat(formData.amount),
+        sender_id: formData.sender_id ? parseInt(formData.sender_id) : null,
+        receiver_id: formData.receiver_id ? parseInt(formData.receiver_id) : null,
+        concept: formData.concept,
+        is_salary: formData.is_salary ? 1 : 0,
+        interest_amount: formData.interest_amount ? parseFloat(formData.interest_amount) : 0,
+        credit_line_id: formData.credit_line_id ? parseInt(formData.credit_line_id) : null,
+        date: formData.date ? new Date(formData.date).toISOString() : new Date().toISOString()
+      };
+      if (editingTransactionId) {
+        tx.id = editingTransactionId;
+      }
+      await saveTransaction(tx);
+      setIsModalOpen(false);
+      setEditingTransactionId(null);
+      fetchData();
+    } catch (e) {
+      alert("Error al guardar: " + e.message);
+    }
+  };
+
+  const handleCardSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const card = {
+        ...cardData,
+        credit_limit: cardData.credit_limit ? parseFloat(cardData.credit_limit) : 0,
+        current_debt: cardData.current_debt ? parseFloat(cardData.current_debt) : 0,
+        cut_day: cardData.cut_day ? parseInt(cardData.cut_day) : null,
+        payment_day: cardData.payment_day ? parseInt(cardData.payment_day) : null,
+        payment_no_interest: cardData.payment_no_interest ? parseFloat(cardData.payment_no_interest) : 0,
+        available_credit: cardData.available_credit ? parseFloat(cardData.available_credit) : 0,
+        liquidation_amount: cardData.liquidation_amount ? parseFloat(cardData.liquidation_amount) : 0,
+      };
+      if (editingCardId) {
+        card.id = editingCardId;
+      }
+      await saveCard(card);
+      setIsCardModalOpen(false);
+      fetchData();
+    } catch (e) {
+      alert("Error al guardar ficha: " + e.message);
+    }
+  };
+
+  const openEditTransactionModal = (t) => {
+    setEditingTransactionId(t.id);
+    setFormData({
+      amount: t.amount.toString(),
+      sender_id: t.sender_id ? t.sender_id.toString() : '',
+      receiver_id: t.receiver_id ? t.receiver_id.toString() : '',
+      concept: t.concept || '',
+      is_salary: !!t.is_salary,
+      interest_amount: t.interest_amount ? t.interest_amount.toString() : '',
+      credit_line_id: t.credit_line_id ? t.credit_line_id.toString() : '',
+      date: t.date ? t.date.substring(0, 10) : ''
+    });
+    setIsModalOpen(true);
   };
 
   const openCardModal = (card = null) => {
