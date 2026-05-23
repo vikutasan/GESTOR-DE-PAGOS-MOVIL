@@ -21,7 +21,7 @@ import './App.css';
 import { initDB, getDashboard, getCards, saveCard, getTransactions, saveTransaction, getSalaries, updateSalaryStatus, getSuggestions, syncCard, exportAllData, importData } from './services/db';
 
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 
@@ -247,7 +247,7 @@ function App() {
         }
       });
 
-      doc.autoTable({
+      autoTable(doc, {
         startY: 28,
         head: [['Fecha', 'Concepto', 'Aport. Alfonso', 'Intereses Pag.', 'Aport. Víctor']],
         body: tableData,
