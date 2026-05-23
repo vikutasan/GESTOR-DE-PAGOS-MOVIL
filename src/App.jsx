@@ -199,7 +199,33 @@ function App() {
   const handleExportPDF = async () => {
     try {
       const doc = new jsPDF();
-      doc.text("Historial de Aportaciones A&V", 14, 15);
+      
+      // Totals calculation
+      const alfonsoTotal = combinedHistory.reduce((acc, item) => {
+        if (item._type === 'transaction' && item.sender_id === 1) return acc + item.amount;
+        if (item._type === 'salary' && item.week_number <= 11) return acc;
+        if (item._type === 'salary' && item.status === 'PAGADO') return acc + (item.amount || 5000);
+        return acc;
+      }, 0);
+      
+      const victorTotal = combinedHistory.reduce((acc, item) => {
+        if (item._type === 'transaction' && item.sender_id === 2) return acc + item.amount;
+        if (item._type === 'salary' && item.week_number <= 11) return acc;
+        if (item._type === 'salary' && item.status === 'PENDIENTE') return acc + (item.amount || 5000);
+        return acc;
+      }, 0);
+
+      const interestTotal = combinedHistory.reduce((acc, item) => item._type === 'transaction' ? acc + (item.interest_amount || 0) : acc, 0);
+
+      const diff = alfonsoTotal - victorTotal;
+      let resultText = "Nadie le debe a nadie (Están a mano)";
+      if (diff > 0) resultText = `Víctor aún debe a Alfonso: $${Math.abs(diff).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      else if (diff < 0) resultText = `Alfonso aún debe a Víctor: $${Math.abs(diff).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+      doc.setFontSize(14);
+      doc.text("Historial de Aportaciones A&V", 105, 15, { align: 'center' });
+      doc.setFontSize(10);
+      doc.text(`RESULTADO: ${resultText}`, 105, 22, { align: 'center' });
       
       const tableData = combinedHistory.map(item => {
         if (item._type === 'transaction') {
@@ -222,9 +248,19 @@ function App() {
       });
 
       doc.autoTable({
-        startY: 25,
+        startY: 28,
         head: [['Fecha', 'Concepto', 'Aport. Alfonso', 'Intereses Pag.', 'Aport. Víctor']],
         body: tableData,
+        foot: [['', 'TOTALES', `$${alfonsoTotal.toLocaleString()}`, `$${interestTotal.toLocaleString()}`, `$${victorTotal.toLocaleString()}`]],
+        theme: 'plain',
+        styles: { fontSize: 8, cellPadding: 2, textColor: [0, 0, 0] },
+        headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontStyle: 'bold', lineWidth: 0.1, lineColor: [51, 51, 51] },
+        footStyles: { fontStyle: 'bold', fontSize: 10, textColor: [0, 0, 0] },
+        columnStyles: {
+          2: { halign: 'right' },
+          3: { halign: 'right' },
+          4: { halign: 'right' }
+        }
       });
 
       // Get base64 string
