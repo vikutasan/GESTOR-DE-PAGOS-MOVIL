@@ -20,6 +20,11 @@ import { parseBankStatement } from './utils/BankParser';
 import './App.css';
 import { initDB, getDashboard, getCards, saveCard, getTransactions, saveTransaction, getSalaries, updateSalaryStatus, getSuggestions, syncCard, exportAllData, importData } from './services/db';
 
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+
 function App() {
   const [activeModule, setActiveModule] = useState('payments');
   const [debtTab, setDebtTab] = useState('alfonso');
@@ -189,6 +194,64 @@ function App() {
       });
     }
     setIsCardModalOpen(true);
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      const doc = new jsPDF();
+      doc.text("Historial de Aportaciones A&V", 14, 15);
+      
+      const tableData = combinedHistory.map(item => {
+        if (item._type === 'transaction') {
+          return [
+            new Date(item.date).toLocaleDateString('es-MX'),
+            item.concept,
+            item.sender_id === 1 ? `$${item.amount.toLocaleString()}` : '-',
+            item.interest_amount > 0 ? `$${item.interest_amount.toLocaleString()}` : '-',
+            item.sender_id === 2 ? `$${item.amount.toLocaleString()}` : '-'
+          ];
+        } else {
+          return [
+            new Date(item.date).toLocaleDateString('es-MX'),
+            `Sueldo Sem. ${item.week_number} (${item.status})`,
+            item.status === 'PAGADO' ? `$${(item.amount || 5000).toLocaleString()}` : '-',
+            '-',
+            item.status === 'PENDIENTE' ? `$${(item.amount || 5000).toLocaleString()}` : '-'
+          ];
+        }
+      });
+
+      doc.autoTable({
+        startY: 25,
+        head: [['Fecha', 'Concepto', 'Aport. Alfonso', 'Intereses Pag.', 'Aport. Víctor']],
+        body: tableData,
+      });
+
+      // Get base64 string
+      const pdfBase64 = doc.output('datauristring').split(',')[1];
+      
+      // Check if it's running in Capacitor
+      if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+        const fileName = `aportaciones_${Date.now()}.pdf`;
+        const writeResult = await Filesystem.writeFile({
+          path: fileName,
+          data: pdfBase64,
+          directory: Directory.Cache
+        });
+        
+        await Share.share({
+          title: 'Historial de Aportaciones',
+          text: 'Aquí está el historial de Aportaciones A&V',
+          url: writeResult.uri,
+          dialogTitle: 'Compartir PDF'
+        });
+      } else {
+        // Fallback for browser
+        doc.save(`aportaciones_${Date.now()}.pdf`);
+      }
+    } catch (e) {
+      alert("Error exportando PDF: " + e.message);
+    }
   };
 
   const getBalanceStatus = () => {
@@ -445,9 +508,7 @@ function App() {
             <header>
               <h1>APORTACIONES DE ALFONSO Y DE VICTOR</h1>
               <div style={{ display: 'flex', gap: '1rem' }}>
-                <button className="btn" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'white' }} onClick={() => {
-                  window.print();
-                }}>
+                <button className="btn" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'white' }} onClick={handleExportPDF}>
                   <FileDown size={20} /> Exportar PDF
                 </button>
                 <button className="btn" onClick={() => {
