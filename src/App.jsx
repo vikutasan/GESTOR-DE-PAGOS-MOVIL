@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { parseBankStatement } from './utils/BankParser';
 import './App.css';
-import { initDB, getDashboard, getCards, saveCard, getTransactions, saveTransaction, getSalaries, updateSalaryStatus, getSuggestions, syncCard, exportAllData, importData } from './services/db';
+import { initDB, getDashboard, getCards, saveCard, deleteCard, getTransactions, saveTransaction, deleteTransaction, getSalaries, updateSalaryStatus, getSuggestions, syncCard, exportAllData, importData } from './services/db';
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -1098,7 +1098,19 @@ function App() {
                     </select>
                   </div>
                 </div>
-                <button type="submit" className="btn" style={{width: '100%', justifyContent: 'center'}}>Guardar</button>
+                <div style={{display: 'flex', gap: '1rem'}}>
+                  <button type="submit" className="btn" style={{flex: 1, justifyContent: 'center'}}>Guardar</button>
+                  {editingTransactionId && (
+                    <button type="button" className="btn" style={{flex: 1, justifyContent: 'center', background: 'var(--accent-red)'}} onClick={async () => {
+                      if(window.confirm('¿Eliminar esta operación?')) {
+                        await deleteTransaction(editingTransactionId);
+                        setIsModalOpen(false);
+                        setEditingTransactionId(null);
+                        fetchData();
+                      }
+                    }}>Eliminar</button>
+                  )}
+                </div>
               </form>
             </div>
           </div>
@@ -1167,7 +1179,19 @@ function App() {
                     <input required type="number" className="status-select" style={{width: '100%'}} value={cardData.payment_day} onChange={e => setCardData({...cardData, payment_day: e.target.value})} />
                   </div>
                 </div>
-                <button type="submit" className="btn" style={{width: '100%', marginTop: '1.5rem', justifyContent: 'center', background: 'var(--accent-purple)'}}>Guardar Ficha</button>
+                <div style={{display: 'flex', gap: '1rem', marginTop: '1.5rem'}}>
+                  <button type="submit" className="btn" style={{flex: 1, justifyContent: 'center', background: 'var(--accent-purple)'}}>Guardar Ficha</button>
+                  {editingCardId && (
+                    <button type="button" className="btn" style={{flex: 1, justifyContent: 'center', background: 'var(--accent-red)'}} onClick={async () => {
+                      if(window.confirm('¿Eliminar esta ficha?')) {
+                        await deleteCard(editingCardId);
+                        setIsCardModalOpen(false);
+                        setEditingCardId(null);
+                        fetchData();
+                      }
+                    }}>Eliminar</button>
+                  )}
+                </div>
               </form>
             </div>
           </div>

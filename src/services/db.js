@@ -106,9 +106,14 @@ export const getCards = async () => {
 };
 
 export const saveCard = async (cardData, id = null) => {
-  const cardId = id || Date.now().toString();
+  const cardId = id || cardData.id || Date.now().toString();
   await dbCreditLines.setItem(cardId, { ...cardData, id: cardId });
   return { success: true, id: cardId };
+};
+
+export const deleteCard = async (id) => {
+  await dbCreditLines.removeItem(id.toString());
+  return { success: true };
 };
 
 export const getTransactions = async () => {
@@ -118,7 +123,7 @@ export const getTransactions = async () => {
 };
 
 export const saveTransaction = async (data, id = null) => {
-  const tId = id || Date.now().toString();
+  const tId = id || data.id || Date.now().toString();
   const date = data.date ? new Date(data.date).toISOString() : new Date().toISOString();
   const t = {
     ...data,
@@ -131,6 +136,11 @@ export const saveTransaction = async (data, id = null) => {
   };
   await dbTransactions.setItem(tId, t);
   return { success: true, id: tId };
+};
+
+export const deleteTransaction = async (id) => {
+  await dbTransactions.removeItem(id.toString());
+  return { success: true };
 };
 
 export const getSalaries = async () => {
