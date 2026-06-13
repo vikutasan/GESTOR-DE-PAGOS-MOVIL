@@ -127,7 +127,7 @@ function App() {
         is_salary: formData.is_salary ? 1 : 0,
         interest_amount: formData.interest_amount ? parseFloat(formData.interest_amount) : 0,
         credit_line_id: formData.credit_line_id ? parseInt(formData.credit_line_id) : null,
-        date: formData.date ? new Date(formData.date).toISOString() : new Date().toISOString()
+        date: formData.date ? new Date(formData.date + 'T12:00:00').toISOString() : new Date().toISOString()
       };
       if (editingTransactionId) {
         tx.id = editingTransactionId;
