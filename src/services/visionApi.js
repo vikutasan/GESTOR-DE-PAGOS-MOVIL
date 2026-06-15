@@ -6,8 +6,6 @@ export const processBankStatementImage = async (base64Image, apiKey) => {
   // Remove data URL prefix if present
   const base64Data = base64Image.split(',')[1] || base64Image;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
-
   const prompt = `
     Eres un asistente financiero experto. Extrae la información de la captura de pantalla de esta aplicación bancaria / tarjeta de crédito.
     Busca los montos exactos y devuelve los resultados en un objeto JSON estricto con las siguientes claves:
@@ -39,24 +37,52 @@ export const processBankStatementImage = async (base64Image, apiKey) => {
     ]
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
+  // Lista de modelos a intentar en orden. Si uno falla por no estar disponible, intenta el siguiente.
+  const modelsToTry = [
+    'gemini-1.5-pro-latest',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro',
+    'gemini-pro-vision'
+  ];
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error('Error en la API de Gemini: ' + (errorData.error?.message || response.statusText));
+  let lastError = null;
+
+  for (const model of modelsToTry) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || response.statusText);
+      }
+
+      const data = await response.json();
+      const textResponse = data.candidates[0].content.parts[0].text;
+      
+      try {
+        const cleanedText = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+        return JSON.parse(cleanedText);
+      } catch (parseError) {
+        throw new Error('No se pudo interpretar la respuesta de la IA. Intenta con otra imagen más clara.');
+      }
+
+    } catch (e) {
+      console.warn(`Modelo ${model} falló: ${e.message}`);
+      lastError = e;
+      
+      // Si el error es de llave inválida o cuota excedida, no tiene sentido intentar más modelos
+      if (e.message.includes('API key not valid') || e.message.includes('quota')) {
+        throw new Error(`Error con tu API Key: ${e.message}`);
+      }
+      
+      // Si el error es de "not found" o "not supported", el loop continuará e intentará el siguiente modelo
+    }
   }
 
-  const data = await response.json();
-  const textResponse = data.candidates[0].content.parts[0].text;
-  
-  try {
-    const cleanedText = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(cleanedText);
-  } catch (e) {
-    throw new Error('No se pudo interpretar la respuesta de la IA. Intenta con otra imagen más clara.');
-  }
+  throw new Error(`Error en la API de Gemini. Ningún modelo soportó la petición. Último error: ${lastError.message}`);
 };
