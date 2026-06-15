@@ -14,9 +14,11 @@ import {
   AlertTriangle,
   ShieldAlert,
   FileDown,
-  Database
+  Database,
+  ImagePlus
 } from 'lucide-react';
 import { parseBankStatement } from './utils/BankParser';
+import { processBankStatementImage } from './services/visionApi';
 import './App.css';
 import { initDB, getDashboard, getCards, saveCard, deleteCard, getTransactions, saveTransaction, deleteTransaction, getSalaries, updateSalaryStatus, getSuggestions, syncCard, exportAllData, importData } from './services/db';
 
@@ -41,6 +43,9 @@ function App() {
   const [syncData, setSyncData] = useState(null);
   const [syncSelectedCardId, setSyncSelectedCardId] = useState('');
   const fileInputRef = useRef(null);
+  const imageInputRef = useRef(null);
+  const [geminiApiKey, setGeminiApiKey] = useState(localStorage.getItem('geminiApiKey') || '');
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
   
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false); // Operaciones
@@ -805,15 +810,32 @@ function App() {
             </header>
             
             {!syncData ? (
+              <>
+              <div className="card" style={{ marginBottom: '2rem', borderLeft: '4px solid var(--accent-purple)', marginTop: '2rem' }}>
+                <h3 style={{ fontSize: '1rem', color: 'var(--accent-purple)', marginBottom: '1rem' }}>Configuración de IA (Gemini)</h3>
+                <p className="text-secondary" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>Para extraer datos de capturas de pantalla de la app de tu banco, ingresa tu clave de API de Google Gemini.</p>
+                <input 
+                  type="password" 
+                  className="status-select" 
+                  placeholder="Pega tu API Key de Gemini aquí..." 
+                  style={{ width: '100%', padding: '0.75rem' }} 
+                  value={geminiApiKey} 
+                  onChange={e => {
+                    setGeminiApiKey(e.target.value);
+                    localStorage.setItem('geminiApiKey', e.target.value);
+                  }} 
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
               <div 
                 className="card" 
                 style={{ 
                   border: '2px dashed var(--accent-blue)', 
-                  padding: '4rem 2rem', 
+                  padding: '3rem 2rem', 
                   textAlign: 'center', 
                   background: 'rgba(59, 130, 246, 0.05)',
-                  cursor: 'pointer',
-                  marginTop: '2rem'
+                  cursor: 'pointer'
                 }}
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={(e) => e.preventDefault()}
@@ -859,8 +881,62 @@ function App() {
                 />
                 <UploadCloud size={64} color="var(--accent-blue)" style={{ margin: '0 auto 1rem', opacity: 0.8 }} />
                 <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>Arrastra tu Estado de Cuenta (Excel/CSV)</h3>
-                <p className="text-secondary">El análisis heurístico detectará saldos, fechas y anomalías localmente en tu navegador. Tus contraseñas y dinero están a salvo.</p>
+                <p className="text-secondary">Análisis heurístico local. Ideal para historial de transacciones.</p>
               </div>
+
+              <div 
+                className="card" 
+                style={{ 
+                  border: '2px dashed var(--accent-purple)', 
+                  padding: '3rem 2rem', 
+                  textAlign: 'center', 
+                  background: 'rgba(168, 85, 247, 0.05)',
+                  cursor: isProcessingImage ? 'not-allowed' : 'pointer',
+                  opacity: isProcessingImage ? 0.6 : 1
+                }}
+                onClick={() => !isProcessingImage && imageInputRef.current?.click()}
+              >
+                <input 
+                  type="file" 
+                  ref={imageInputRef} 
+                  style={{ display: 'none' }} 
+                  accept="image/*" 
+                  onChange={async (e) => {
+                    if (e.target.files.length > 0) {
+                      if (!geminiApiKey) return alert('Por favor, configura tu API Key de Gemini primero en la caja de arriba.');
+                      const file = e.target.files[0];
+                      setSyncFile(file);
+                      setIsProcessingImage(true);
+                      try {
+                        const reader = new FileReader();
+                        reader.onloadend = async () => {
+                          try {
+                            const resultJson = await processBankStatementImage(reader.result, geminiApiKey);
+                            setSyncData({ metadata: resultJson, transactions: [] });
+                          } catch(err) {
+                            alert("Error al procesar imagen: " + err.message);
+                            setSyncFile(null);
+                          } finally {
+                            setIsProcessingImage(false);
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      } catch(err) {
+                        alert("Error: " + err.message);
+                        setIsProcessingImage(false);
+                        setSyncFile(null);
+                      }
+                    }
+                  }}
+                />
+                <ImagePlus size={64} color="var(--accent-purple)" style={{ margin: '0 auto 1rem', opacity: 0.8 }} />
+                <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>
+                  {isProcessingImage ? 'Procesando Imagen con IA...' : 'Subir Captura de Pantalla'}
+                </h3>
+                <p className="text-secondary">Usa Inteligencia Artificial para extraer saldos y fechas al instante.</p>
+              </div>
+              </div>
+              </>
             ) : (
               <div className="card animate-fade-in" style={{ marginTop: '2rem' }}>
                 <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
@@ -894,7 +970,7 @@ function App() {
                           type="number" 
                           className="status-select"
                           style={{ width: '100%' }}
-                          value={syncData.metadata.current_debt} 
+                          value={syncData.metadata.current_debt || ''} 
                           onChange={(e) => setSyncData({...syncData, metadata: {...syncData.metadata, current_debt: e.target.value}})} 
                         />
                       </div>
@@ -904,7 +980,7 @@ function App() {
                           type="number" 
                           className="status-select"
                           style={{ width: '100%' }}
-                          value={syncData.metadata.payment_no_interest} 
+                          value={syncData.metadata.payment_no_interest || ''} 
                           onChange={(e) => setSyncData({...syncData, metadata: {...syncData.metadata, payment_no_interest: e.target.value}})} 
                         />
                       </div>
