@@ -6,7 +6,7 @@ export const processBankStatementImage = async (base64Image, apiKey) => {
   // Remove data URL prefix if present
   const base64Data = base64Image.split(',')[1] || base64Image;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
   const prompt = `
     Eres un asistente financiero experto. Extrae la información de la captura de pantalla de esta aplicación bancaria / tarjeta de crédito.
