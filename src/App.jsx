@@ -295,6 +295,64 @@ function App() {
     }
   };
 
+  const handleExportDebtsPDF = async () => {
+    try {
+      const doc = new jsPDF();
+      
+      const tabCards = cards.filter(c => (c.managed_by || 'alfonso') === debtTab);
+      const adminName = debtTab === 'alfonso' ? 'Alfonso' : 'Víctor';
+      const totalDebt = tabCards.reduce((acc, c) => acc + (c.current_debt || 0), 0);
+      
+      doc.setFontSize(14);
+      doc.text(`Lista de Deudas - Administradas por ${adminName}`, 105, 15, { align: 'center' });
+      doc.setFontSize(10);
+      doc.text(`Deuda Total Acumulada: $${totalDebt.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 105, 22, { align: 'center' });
+      
+      const tableData = tabCards.map(c => [
+        c.name,
+        `$${(c.current_debt || 0).toLocaleString()}`,
+        c.payment_day ? c.payment_day.toString() : 'N/A',
+        `$${(c.payment_no_interest || 0).toLocaleString()}`
+      ]);
+
+      autoTable(doc, {
+        startY: 28,
+        head: [['Nombre de Ficha', 'Deuda Total', 'Día de Pago', 'Pago para no Generar Int.']],
+        body: tableData,
+        theme: 'plain',
+        styles: { fontSize: 9, cellPadding: 3, textColor: [0, 0, 0] },
+        headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontStyle: 'bold', lineWidth: 0.1, lineColor: [51, 51, 51] },
+        columnStyles: {
+          1: { halign: 'right' },
+          2: { halign: 'center' },
+          3: { halign: 'right' }
+        }
+      });
+
+      const pdfBase64 = doc.output('datauristring').split(',')[1];
+      
+      if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+        const fileName = `deudas_${debtTab}_${Date.now()}.pdf`;
+        const writeResult = await Filesystem.writeFile({
+          path: fileName,
+          data: pdfBase64,
+          directory: Directory.Cache
+        });
+        
+        await Share.share({
+          title: 'Lista de Deudas',
+          text: `Aquí está la lista de deudas administradas por ${adminName}`,
+          url: writeResult.uri,
+          dialogTitle: 'Compartir PDF de Deudas'
+        });
+      } else {
+        doc.save(`deudas_${debtTab}_${Date.now()}.pdf`);
+      }
+    } catch (e) {
+      alert("Error exportando PDF: " + e.message);
+    }
+  };
+
   const getBalanceStatus = () => {
     if (!dashboard.accounts || dashboard.accounts.length === 0) return { text: "Cargando...", color: "text-secondary" };
     const victor = dashboard.accounts.find(a => a.name === 'Víctor');
@@ -365,6 +423,9 @@ function App() {
             <header>
               <h1>GESTIÓN DE PAGOS DE DEUDAS</h1>
               <div style={{ display: 'flex', gap: '1rem' }}>
+                <button className="btn" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'white' }} onClick={handleExportDebtsPDF}>
+                  <FileDown size={20} /> Exportar PDF
+                </button>
                 <button className="btn" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'white' }} onClick={() => openCardModal(null)}>
                   <Plus size={20} /> Añadir Ficha
                 </button>
