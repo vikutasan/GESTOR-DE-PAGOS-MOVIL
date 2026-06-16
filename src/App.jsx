@@ -1024,16 +1024,6 @@ function App() {
                           onChange={(e) => setSyncData({...syncData, metadata: {...syncData.metadata, payment_day: e.target.value}})} 
                         />
                       </div>
-                      <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                        <label className="stat-label">Monto para Liquidar ($)</label>
-                        <input 
-                          type="number" 
-                          className="status-select"
-                          style={{ width: '100%' }}
-                          value={syncData.metadata.liquidation_amount || ''} 
-                          onChange={(e) => setSyncData({...syncData, metadata: {...syncData.metadata, liquidation_amount: e.target.value}})} 
-                        />
-                      </div>
                     </div>
                   </div>
                 </div>
