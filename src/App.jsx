@@ -965,7 +965,7 @@ function App() {
                     <h3 style={{ marginBottom: '1rem', fontSize: '1rem', color: 'var(--accent-green)' }}>2. Datos Extraídos (Editables)</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                       <div className="form-group">
-                        <label className="stat-label">Deuda Actual (Detectada)</label>
+                        <label className="stat-label">Deuda Actual ($)</label>
                         <input 
                           type="number" 
                           className="status-select"
@@ -975,13 +975,63 @@ function App() {
                         />
                       </div>
                       <div className="form-group">
-                        <label className="stat-label">Pago para no generar int.</label>
+                        <label className="stat-label">Pago para no generar int. ($)</label>
                         <input 
                           type="number" 
                           className="status-select"
                           style={{ width: '100%' }}
                           value={syncData.metadata.payment_no_interest || ''} 
                           onChange={(e) => setSyncData({...syncData, metadata: {...syncData.metadata, payment_no_interest: e.target.value}})} 
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="stat-label">Límite de Crédito ($)</label>
+                        <input 
+                          type="number" 
+                          className="status-select"
+                          style={{ width: '100%' }}
+                          value={syncData.metadata.credit_limit || ''} 
+                          onChange={(e) => setSyncData({...syncData, metadata: {...syncData.metadata, credit_limit: e.target.value}})} 
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="stat-label">Saldo Disponible ($)</label>
+                        <input 
+                          type="number" 
+                          className="status-select"
+                          style={{ width: '100%' }}
+                          value={syncData.metadata.available_credit || ''} 
+                          onChange={(e) => setSyncData({...syncData, metadata: {...syncData.metadata, available_credit: e.target.value}})} 
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="stat-label">Día de Corte</label>
+                        <input 
+                          type="number" 
+                          className="status-select"
+                          style={{ width: '100%' }}
+                          value={syncData.metadata.cut_day || ''} 
+                          onChange={(e) => setSyncData({...syncData, metadata: {...syncData.metadata, cut_day: e.target.value}})} 
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="stat-label">Día Límite de Pago</label>
+                        <input 
+                          type="number" 
+                          className="status-select"
+                          style={{ width: '100%' }}
+                          value={syncData.metadata.payment_day || ''} 
+                          onChange={(e) => setSyncData({...syncData, metadata: {...syncData.metadata, payment_day: e.target.value}})} 
+                        />
+                      </div>
+                      <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                        <label className="stat-label">Monto para Liquidar ($)</label>
+                        <input 
+                          type="number" 
+                          className="status-select"
+                          style={{ width: '100%' }}
+                          value={syncData.metadata.liquidation_amount || ''} 
+                          onChange={(e) => setSyncData({...syncData, metadata: {...syncData.metadata, liquidation_amount: e.target.value}})} 
                         />
                       </div>
                     </div>
