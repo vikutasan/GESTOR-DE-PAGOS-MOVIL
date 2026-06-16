@@ -3,7 +3,6 @@ export const processBankStatementImage = async (base64Image, apiKey) => {
     throw new Error('API Key de Gemini no configurada');
   }
 
-  // Remove data URL prefix if present
   const base64Data = base64Image.split(',')[1] || base64Image;
 
   const prompt = `
@@ -37,52 +36,75 @@ export const processBankStatementImage = async (base64Image, apiKey) => {
     ]
   };
 
-  // Lista de modelos a intentar en orden. Si uno falla por no estar disponible, intenta el siguiente.
-  const modelsToTry = [
-    'gemini-1.5-pro-latest',
+  // 1. Obtener los modelos que tu API Key específica tiene permitidos
+  const modelsUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+  let modelsResponse;
+  try {
+    modelsResponse = await fetch(modelsUrl);
+  } catch (e) {
+    throw new Error(`Error de conexión al verificar modelos: ${e.message}`);
+  }
+
+  if (!modelsResponse.ok) {
+    const errData = await modelsResponse.json();
+    throw new Error(`Error de API Key al consultar modelos: ${errData.error?.message || modelsResponse.statusText}`);
+  }
+
+  const modelsData = await modelsResponse.json();
+  const availableModels = modelsData.models || [];
+  
+  // Filtrar solo los que soportan generateContent
+  const validModels = availableModels.filter(m => 
+    m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent')
+  ).map(m => m.name.replace('models/', ''));
+
+  if (validModels.length === 0) {
+    throw new Error('Tu API Key no tiene ningún modelo habilitado que soporte generateContent.');
+  }
+
+  // 2. Elegir el mejor modelo disponible en tu cuenta
+  const preferredOrder = [
     'gemini-1.5-flash',
+    'gemini-1.5-flash-latest',
     'gemini-1.5-pro',
+    'gemini-1.5-pro-latest',
+    'gemini-2.0-flash-exp',
     'gemini-pro-vision'
   ];
 
-  let lastError = null;
-
-  for (const model of modelsToTry) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || response.statusText);
-      }
-
-      const data = await response.json();
-      const textResponse = data.candidates[0].content.parts[0].text;
-      
-      try {
-        const cleanedText = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
-        return JSON.parse(cleanedText);
-      } catch (parseError) {
-        throw new Error('No se pudo interpretar la respuesta de la IA. Intenta con otra imagen más clara.');
-      }
-
-    } catch (e) {
-      console.warn(`Modelo ${model} falló: ${e.message}`);
-      lastError = e;
-      
-      // Si el error es de llave inválida o cuota excedida, no tiene sentido intentar más modelos
-      if (e.message.includes('API key not valid') || e.message.includes('quota')) {
-        throw new Error(`Error con tu API Key: ${e.message}`);
-      }
-      
-      // Si el error es de "not found" o "not supported", el loop continuará e intentará el siguiente modelo
+  let selectedModel = null;
+  for (const pref of preferredOrder) {
+    if (validModels.includes(pref)) {
+      selectedModel = pref;
+      break;
     }
   }
 
-  throw new Error(`Error en la API de Gemini. Ningún modelo soportó la petición. Último error: ${lastError.message}`);
+  // Si no hay ninguno de los preferidos, tomar el primero que tenga la palabra gemini
+  if (!selectedModel) {
+    selectedModel = validModels.find(m => m.includes('gemini')) || validModels[0];
+  }
+
+  // 3. Ejecutar la petición con el modelo confirmado
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`Fallo con el modelo detectado (${selectedModel}): ${errorData.error?.message || response.statusText}`);
+  }
+
+  const data = await response.json();
+  const textResponse = data.candidates[0].content.parts[0].text;
+  
+  try {
+    const cleanedText = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(cleanedText);
+  } catch (parseError) {
+    throw new Error('No se pudo interpretar la respuesta de la IA. Intenta con otra imagen más clara.');
+  }
 };
