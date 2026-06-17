@@ -332,7 +332,7 @@ function App() {
       const pdfBase64 = doc.output('datauristring').split(',')[1];
       
       if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-        const fileName = `deudas_${debtTab}_${Date.now()}.pdf`;
+        const fileName = `ADMIN_${debtTab.toUpperCase()}_${Date.now()}.pdf`;
         const writeResult = await Filesystem.writeFile({
           path: fileName,
           data: pdfBase64,
@@ -346,7 +346,7 @@ function App() {
           dialogTitle: 'Compartir PDF de Deudas'
         });
       } else {
-        doc.save(`deudas_${debtTab}_${Date.now()}.pdf`);
+        doc.save(`ADMIN_${debtTab.toUpperCase()}_${Date.now()}.pdf`);
       }
     } catch (e) {
       alert("Error exportando PDF: " + e.message);
